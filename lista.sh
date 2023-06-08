@@ -21,11 +21,18 @@
 # disk usage, failed services, etc.
 # ---------------------------------------------------
 
+
+set -o noclobber  # Avoid overlay files (echo "hi" > foo)
+#set -o errexit    # Used to exit upon error, avoiding cascading errors
+set -o pipefail   # Unveils hidden failures
+set -o nounset    # Exposes unset variables
+
 # Initialize all the option variables.
 # This ensures we are not contaminated by variables from the environment.
 RAM="false"
 CPU="false"
 CPU_MEASUREMENT_DURATION=5
+DISK="false"
 
 # save the arguments in case they are required later
 ARGS=$*
@@ -66,7 +73,7 @@ function error() {
 }
 
 #######################################
-# Show help.
+# Get the current memory usage of the system.
 # Globals:
 #   None
 # Arguments:
@@ -79,19 +86,19 @@ function getMemoryUsage() {
 }
 
 #######################################
-# Show help.
+# Get the current load on all CPU cores of the system.
 # Globals:
-#   None
+#   CPU_MEASUREMENT_DURATION in seconds
 # Arguments:
 #   None
 # Outputs:
-#   Prints average load over all CPU cores
+#   Prints average load over all CPU cores. The first value is the overall load,
+#   each following entry is for another CPU core, CPU0, CPU1, CPU2, ...
 #######################################
 function getCpuUsage() {
   cpu_cores=$( lscpu | grep '^CPU(s):' | awk '{print int($2)}' )
 
-  if [ "${CPU_MEASUREMENT_DURATION}" -le 0 ]
-  then
+  if [ "${CPU_MEASUREMENT_DURATION}" -le 0 ]; then
     mpstats_output=$( mpstat -P ALL 0 | tail -n $((cpu_cores + 1)) )
   else
     mpstats_output=$( mpstat -P ALL 1 "${CPU_MEASUREMENT_DURATION}" | tail -n $((cpu_cores + 1)) )
@@ -103,11 +110,24 @@ function getCpuUsage() {
   # mpstats values have the following structure
   # time   CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
   # in the following we want to access the %idle value at index 11, 23, 35, ...
-  for (( i=11; i<len; i=i+12 ))
-  do #calculate the load from the idle column
+  for (( i=11; i<len; i=i+12 )); do #calculate the load from the idle column
     awk -v idle="${mpstat_array[$i]//,/\.}}" 'BEGIN{print 100.0 - idle }'
   done
 }
+
+#######################################
+# Get the current disk usage of all mounted disks.
+# Globals:
+#   None
+# Arguments:
+#   None
+# Outputs:
+#   Prints percentage of used space for each mounted disk
+#######################################
+function getDiskUsage() {
+  df -H | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{sub(".$","",$5); print $1 " " $6 " " $5 }'
+}
+
 
 function main() {
   # -------------------------------------------------------
@@ -115,14 +135,13 @@ function main() {
   # -------------------------------------------------------
 
   # if no argument, display help
-  if [ $# -eq 0 ] 
-  then
+  if [ $# -eq 0 ]; then
     help
   fi
 
   # loop to retrieve arguments
   while :; do
-    case $1 in
+    case ${1:-} in
       -h|-\?|--help)
       help # show help for this script
       exit 0
@@ -132,28 +151,15 @@ function main() {
       ;;
       --cpuusage|-cpu)
       CPU="true"
-      if [ "$2" ]; then
-          CPU_MEASUREMENT_DURATION=$2
-          shift
-      else
-          CPU_MEASUREMENT_DURATION=5 #error '[lista.sh] "--bottoken" requires a non-empty option argument.'
+      if [[ ${2:-} == ?(-)+([0-9]) ]]; then
+        CPU_MEASUREMENT_DURATION=$2
+        shift
+      #else
+      #  CPU_MEASUREMENT_DURATION=5
       fi
       ;;
-      --offset)
-      if [[ "$2" =~ ^[0-9]*$ ]]; then
-          OFFSET=$2
-          shift
-      else
-          error '[lista.sh] "--offset" requires a numeric value as argument.'
-      fi
-      ;;
-      -bt|-token|--bottoken)
-      if [ "$2" ]; then
-          BOT_TOKEN=$2
-          shift
-      else
-          error '[lista.sh] "--bottoken" requires a non-empty option argument.'
-      fi
+      --diskusage|-disk)
+      DISK="true"
       ;;
       --) # End of all options.
       shift
@@ -168,14 +174,16 @@ function main() {
     shift
   done
 
-  if [ "${RAM}" = "true" ]
-  then
+  if [ "${RAM}" = "true" ]; then
     getMemoryUsage
   fi
 
-  if [ "${CPU}" = "true" ]
-  then
+  if [ "${CPU}" = "true" ]; then
     getCpuUsage
+  fi
+
+  if [ "${DISK}" = "true" ]; then
+    getDiskUsage
   fi
 
 }
