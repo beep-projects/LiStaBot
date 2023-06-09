@@ -123,6 +123,7 @@ function getCpuUsage() {
 #   None
 # Outputs:
 #   Prints percentage of used space for each mounted disk
+#   %Device %Mount Point %Used
 #######################################
 function getDiskUsage() {
   df -H | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{sub(".$","",$5); print $1 " " $6 " " $5 }'
