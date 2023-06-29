@@ -27,16 +27,6 @@ set -o noclobber  # Avoid overlay files (echo "hi" > foo)
 set -o pipefail   # Unveils hidden failures
 set -o nounset    # Exposes unset variables
 
-# Initialize all the option variables.
-# This ensures we are not contaminated by variables from the environment.
-RAM="false"
-CPU="false"
-CPU_MEASUREMENT_DURATION=5
-DISK="false"
-
-# save the arguments in case they are required later
-ARGS=$*
-
 #######################################
 # Show help.
 # Globals:
@@ -88,20 +78,20 @@ function getMemoryUsage() {
 #######################################
 # Get the current load on all CPU cores of the system.
 # Globals:
-#   CPU_MEASUREMENT_DURATION in seconds
-# Arguments:
 #   None
+# Arguments:
+#   duration TODO
 # Outputs:
 #   Prints average load over all CPU cores. The first value is the overall load,
 #   each following entry is for another CPU core, CPU0, CPU1, CPU2, ...
 #######################################
 function getCpuUsage() {
   cpu_cores=$( lscpu | grep '^CPU(s):' | awk '{print int($2)}' )
-
-  if [ "${CPU_MEASUREMENT_DURATION}" -le 0 ]; then
+  duration=${1:-5}
+  if [ "${duration}" -le 0 ]; then
     mpstats_output=$( mpstat -P ALL 0 | tail -n $((cpu_cores + 1)) )
   else
-    mpstats_output=$( mpstat -P ALL 1 "${CPU_MEASUREMENT_DURATION}" | tail -n $((cpu_cores + 1)) )
+    mpstats_output=$( mpstat -P ALL 1 "${duration}" | tail -n $((cpu_cores + 1)) )
   fi
   mpstat_array=()
   read -r -a mpstat_array -d '' <<< "$mpstats_output"
@@ -113,6 +103,20 @@ function getCpuUsage() {
   for (( i=11; i<len; i=i+12 )); do #calculate the load from the idle column
     awk -v idle="${mpstat_array[$i]//,/\.}}" 'BEGIN{print 100.0 - idle }'
   done
+}
+
+#######################################
+# Get the current load on all CPU cores of the system.
+# Globals:
+#   None
+# Arguments:
+#   TODO
+# Outputs:
+#   Prints average load over all CPU cores. The first value is the overall load,
+#   each following entry is for another CPU core, CPU0, CPU1, CPU2, ...
+#######################################
+function getCpuLoadTopX() {
+  ps ahux --sort=-c | awk -v x="${1:-3}" 'NR<=x{printf"%s %6d %s\n",$3,$2,$11}'
 }
 
 #######################################
@@ -129,7 +133,6 @@ function getDiskUsage() {
   df -H | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{sub(".$","",$5); print $1 " " $6 " " $5 }'
 }
 
-
 function main() {
   # -------------------------------------------------------
   #   Loop to load arguments
@@ -141,6 +144,12 @@ function main() {
   fi
 
   # loop to retrieve arguments
+  local RAM="false"
+  local CPU="false"
+  local CPU_TOP_X="false"
+  local DISK="false"
+  local measurement_duration
+  local top_x
   while :; do
     case ${1:-} in
       -h|-\?|--help)
@@ -153,10 +162,15 @@ function main() {
       --cpuusage|-cpu)
       CPU="true"
       if [[ ${2:-} == ?(-)+([0-9]) ]]; then
-        CPU_MEASUREMENT_DURATION=$2
+        measurement_duration=$2
         shift
-      #else
-      #  CPU_MEASUREMENT_DURATION=5
+      fi
+      ;;
+      --cpuloadtopx|-cputopx)
+      CPU_TOP_X="true"
+      if [[ ${2:-} == ?(-)+([0-9]) ]]; then
+        top_x=$2
+        shift
       fi
       ;;
       --diskusage|-disk)
@@ -180,7 +194,11 @@ function main() {
   fi
 
   if [ "${CPU}" = "true" ]; then
-    getCpuUsage
+    getCpuUsage "$measurement_duration"
+  fi
+
+  if [ "${CPU_TOP_X}" = "true" ]; then
+    getCpuLoadTopX "$top_x"
   fi
 
   if [ "${DISK}" = "true" ]; then
