@@ -226,9 +226,9 @@ function main() {
     fi
     sed -i "s/^CHAT_ID=.*/CHAT_ID=${chatid_id}/" "${WATCHDOG_CONF_FILE}"
     # copy the files to their apropriate locations and enable the lista_watchdog.service
-    cp "${WATCHDOG_CONF_FILE}" /etc/listabot/
-    cp lista_watchdog.sh /usr/local/bin/
-    cp lista_watchdog.service /etc/systemd/system/
+    sudo cp "${WATCHDOG_CONF_FILE}" /etc/listabot/
+    sudo cp lista_watchdog.sh /usr/local/bin/
+    sudo cp lista_watchdog.service /etc/systemd/system/
     sudo systemctl daemon-reload
     sudo systemctl enable lista_watchdog.service
   fi
@@ -239,13 +239,13 @@ function main() {
       echo "The ADMIN_ID is not set, please send /start to your bot now. The install script will then get the ADMIN_ID from your message"
       getChatId "${bot_token}"
     fi
-    cp lista_bot.service /etc/systemd/system/
+    sudo cp lista_bot.service /etc/systemd/system/
     sudo systemctl daemon-reload
     sudo systemctl enable lista_bot.service
   fi
 
   if [[ "${lista}" = true ]]; then
-    cp lista.sh /usr/local/bin
+    sudo cp lista.sh /usr/local/bin
   fi
 }
 

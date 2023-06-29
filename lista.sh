@@ -39,11 +39,15 @@ set -o nounset    # Exposes unset variables
 function help() {
 cat <<END
   lista.sh: script to get status information about a Linux system
-    Main parameters are :
-    -h/-?/--help           display this help and exit
   Options are :
-    --title <title>        Title of the message
-
+    -h/-?/--help                         display this help and exit
+    --ramusage|-ram|-mem                 get the current RAM usage
+    --ramusagetopx|-ramtopx|-memtopx)    get the top X processes for CPU usage. Accepts parameter X, which defaults to 5
+    --cpuusage|-cpu                      get the CPU usage. Accepts parameter measurement duration in seconds, which defaults to 5s if unset
+                                         Prints average load over all CPU cores. The first value is the overall load,
+                                         each following entry is for another CPU core, CPU0, CPU1, CPU2, ...
+    --cpuloadtopx|-cputopx)              get the top X processes for CPU usage. Accepts parameter X, which defaults to 5
+    --diskusage|-disk)                   get the current disk usage as percentage of installed RAM
 END
 }
 
@@ -80,7 +84,21 @@ function getMemoryUsage() {
 # Globals:
 #   None
 # Arguments:
-#   duration TODO
+#   X size of the top X list
+# Outputs:
+#   Prints the top X processes in terms of RAM usage. The values are %MEM, PID, COMMAND
+#######################################
+function getMemoryUsageTopX() {
+  ps ahux --sort=-%mem | awk -v x="${1:-5}" '/ps ahux --sort=-%mem/ {x=x+1;next} NR<=x{printf"%s %6d %s\n",$4,$2,$11}'
+}
+
+
+#######################################
+# Get the current load on all CPU cores of the system.
+# Globals:
+#   None
+# Arguments:
+#   duration measurement duration for CPU load in second. Defaults to 5s.
 # Outputs:
 #   Prints average load over all CPU cores. The first value is the overall load,
 #   each following entry is for another CPU core, CPU0, CPU1, CPU2, ...
@@ -110,13 +128,12 @@ function getCpuUsage() {
 # Globals:
 #   None
 # Arguments:
-#   TODO
+#   X size of the top X list
 # Outputs:
-#   Prints average load over all CPU cores. The first value is the overall load,
-#   each following entry is for another CPU core, CPU0, CPU1, CPU2, ...
+#   Prints the top X processes in terms of caused CPU load. The values are %CPU, PID, COMMAND
 #######################################
 function getCpuLoadTopX() {
-  ps ahux --sort=-c | awk -v x="${1:-3}" 'NR<=x{printf"%s %6d %s\n",$3,$2,$11}'
+  ps ahux --sort=-c | awk -v x="${1:-5}" '/ps ahux --sort=-c/ {x=x+1;next} NR<=x{printf"%s %6d %s\n",$3,$2,$11}'
 }
 
 #######################################
@@ -145,11 +162,13 @@ function main() {
 
   # loop to retrieve arguments
   local RAM="false"
+  local RAM_TOP_X="false"
   local CPU="false"
   local CPU_TOP_X="false"
   local DISK="false"
-  local measurement_duration
-  local top_x
+  local measurement_duration=3
+  local cpu_top_x=5
+  local ram_top_x=5
   while :; do
     case ${1:-} in
       -h|-\?|--help)
@@ -158,6 +177,13 @@ function main() {
       ;;
       --ramusage|-ram|-mem)
       RAM="true"
+      ;;
+      --ramusagetopx|-ramtopx|-memtopx)
+      RAM_TOP_X="true"
+      if [[ ${2:-} == ?(-)+([0-9]) ]]; then
+        ram_top_x=$2
+        shift
+      fi
       ;;
       --cpuusage|-cpu)
       CPU="true"
@@ -169,7 +195,7 @@ function main() {
       --cpuloadtopx|-cputopx)
       CPU_TOP_X="true"
       if [[ ${2:-} == ?(-)+([0-9]) ]]; then
-        top_x=$2
+        cpu_top_x=$2
         shift
       fi
       ;;
@@ -193,12 +219,16 @@ function main() {
     getMemoryUsage
   fi
 
+  if [ "${RAM_TOP_X}" = "true" ]; then
+    getMemoryUsageTopX "$ram_top_x"
+  fi
+
   if [ "${CPU}" = "true" ]; then
     getCpuUsage "$measurement_duration"
   fi
 
   if [ "${CPU_TOP_X}" = "true" ]; then
-    getCpuLoadTopX "$top_x"
+    getCpuLoadTopX "$cpu_top_x"
   fi
 
   if [ "${DISK}" = "true" ]; then
