@@ -27,7 +27,7 @@ set -o nounset    # Exposes unset variables
 
 # Initialize all the option variables.
 # This ensures we are not contaminated by variables from the environment.
-CONF_FILE="/etc/listabot/lista_watchdog.conf"
+CONF_FILE="/etc/listabot/listabot.conf"
 BOT_TOKEN=""
 CHAT_ID=""
 DISK_LIMIT=""
@@ -110,7 +110,7 @@ function main() {
     # Check RAM usage #
     ###################
     local ram
-    ram=$( ./lista.sh --ramusage )
+    ram=$( lista.sh --ramusage )
     if [[ "${ram%.*}" -ge $RAM_LIMIT ]]; then
       echo "RAM warning!"
       telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "RAM Limit exceeded!" --text "RAM usage is currently @ ${ram}%"
@@ -118,7 +118,7 @@ function main() {
     ###################
     # Check CPU usage #
     ###################
-    mapfile -t cpu < <( ./lista.sh --cpuusage 1 )
+    mapfile -t cpu < <( lista.sh --cpuusage 1 )
     local send_cpu_alert
     send_cpu_alert=false
     local cpu_alert_text
@@ -134,14 +134,14 @@ function main() {
     done
     if $send_cpu_alert; then
       cpu_alert_text+="\n\`\`\`\n*Top 3 processes*\n"
-      cpu_alert_text+=$( ./lista.sh -cputopx 3 )
+      cpu_alert_text+=$( lista.sh -cputopx 3 )
       telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "High CPU load detected!" --text "${cpu_alert_text}"
     fi 
     ####################
     # Check disk usage #
     ####################
     local disk
-    disk=$( ./lista.sh --diskusage | awk -v disk_limit="${DISK_LIMIT}" '{ if( $3 > disk_limit ) print $1 " mounted as " $2 ": " $3 "%"}' )
+    disk=$( lista.sh --diskusage | awk -v disk_limit="${DISK_LIMIT}" '{ if( $3 > disk_limit ) print $1 " mounted as " $2 ": " $3 "%"}' )
     if [[ -n "${disk}" ]]; then
       telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "Disk filled over the limit!" --text "${disk}"
     fi

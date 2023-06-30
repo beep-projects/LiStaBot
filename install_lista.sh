@@ -26,8 +26,8 @@ set -o nounset    # Exposes unset variables
 
 # Initialize all the option variables.
 # This ensures we are not contaminated by variables from the environment.
-WATCHDOG_CONF_FILE="lista_watchdog.conf"
-BOT_CONF_FILE="lista_bot.conf"
+CONFIG_DIR="/etc/listabot/"
+CONF_FILE="listabot.conf"
 
 
 #######################################
@@ -93,7 +93,6 @@ function waitForInternet() {
   done
 }
 
-
 #######################################
 # Try to obtain the chat_id from messages with command /start.
 # If such a message is not received, this function will loop indefenitely.
@@ -104,27 +103,29 @@ function waitForInternet() {
 # Outputs:
 #   the chat id of the last update for bot_id containing the /start command
 #######################################
-function getChatID() {
+function getChatId() {
   local bot_token="${1}"
-  local chat_id
-  local admin_id
-  local last_update_id
-  local update_json
+  local chat_id=""
+  local admin_id=""
+  local last_update_id=""
+  local update_json=""
+
   if [[ ! ${bot_token} =~ ^[0-9]{8,10}:[0-9a-zA-Z_-]{35}$ ]]; then
-    error "\"${bot_token}\" does not seem to be a valid bot token, getChatID() cannot work with this. Please check why this error happened."
+    error "\"${bot_token}\" does not seem to be a valid bot token, getChatId() cannot work with this. Please check why this error happened."
   fi
+
   while [[ -z "${chat_id}" ]]; do
     update_json=$( telegram.bot --get_updates --bottoken "${bot_token}" )
     chat_id=$( echo "${update_json}" | jq ".result | [.[].message | select(.text==\"/start\")][-1].chat.id" )
     admin_id=$( echo "${update_json}" | jq ".result | [.[].message | select(.text==\"/start\")][-1].from.id" )
     last_update_id=$( echo "${update_json}" | jq ".result | [select(.[].message.text==\"/start\")][] | .[-1].update_id" )
-    if [[ -z "${chat_id}" ]] || [[ -z "${admin_id}" ]] || [[ -z "${LAST_UPDATE_ID}" ]]; then
+    if [[ -z "${chat_id}" ]] || [[ -z "${admin_id}" ]] || [[ -z "${last_update_id}" ]]; then
       echo "please send /start to bot #${bot_token}, I am still waiting ..."
       sleep 10
     else #TODO check the globals for these files
-      sed -i "s/^CHAT_ID=.*/CHAT_ID=$chat_id/" $WATCHDOG_CONF_FILE
-      sed -i "s/^ADMIN_ID=.*/ADMIN_ID=$admin_id/" $BOT_CONF_FILE
-      sed -i "s/^LAST_UPDATE_ID=.*/LAST_UPDATE_ID=$last_update_id/" $BOT_CONF_FILE
+      sed -i "s/^CHAT_ID=.*/CHAT_ID=$chat_id/" $CONF_FILE
+      sed -i "s/^ADMIN_ID=.*/ADMIN_ID=$admin_id/" $CONF_FILE
+      sed -i "s/^LAST_UPDATE_ID=.*/LAST_UPDATE_ID=$last_update_id/" $CONF_FILE
     fi
   done
 }
@@ -196,11 +197,11 @@ function main() {
   done
 
   if [[ -n "${bot_token}" ]]; then
-    sed -i "s/^BOT_TOKEN=.*/BOT_TOKEN=${bot_token}/" "${WATCHDOG_CONF_FILE}"
+    sed -i "s/^BOT_TOKEN=.*/BOT_TOKEN=${bot_token}/" "${CONF_FILE}"
   fi
 
   if [[ -n "${client_id}" ]]; then
-    sed -i "s/^CHAT_ID=.*/CHAT_ID=${client_id}/" "${WATCHDOG_CONF_FILE}"
+    sed -i "s/^CHAT_ID=.*/CHAT_ID=${client_id}/" "${CONF_FILE}"
   fi
 
   if [[ "${watchdog}" = true ]]; then
@@ -212,21 +213,21 @@ function main() {
         sudo ./telegram.bot --install
     fi
     # validate BOT_TOKEN
-    bot_token=$( grep -w "BOT_TOKEN" "${WATCHDOG_CONF_FILE}" | cut -d"=" -f2 )
+    bot_token=$( grep -w "BOT_TOKEN" "${CONF_FILE}" | cut -d"=" -f2 )
     if [[ ! ${bot_token} =~ ^[0-9]{8,10}:[0-9a-zA-Z_-]{35}$ ]]; then
       # without a valid BOT_TOKEN, the lista_watchdog.sh cannot send messages and is useless
       # print this information and exit the install script
-      error "\"${bot_token}\" does not seem to be a valid bot token, please correct your entry in ${WATCHDOG_CONF_FILE} and try again"
+      error "\"${bot_token}\" does not seem to be a valid bot token, please correct your entry in ${CONF_FILE} and try again"
     fi
     # validate CHAT_ID
-    chatid_id=$( grep -w "CHAT_ID" "${WATCHDOG_CONF_FILE}" | cut -d"=" -f2 )
+    chatid_id=$( grep -w "CHAT_ID" "${CONF_FILE}" | cut -d"=" -f2 )
     if [[ ! ${chatid_id} =~ ^(-)?[0-9]+$ ]]; then
       echo "\"${chatid_id}\" does not seem to be a valid chat id, please send /start to your bot now. The install script will then get the chat id from your message"
       getChatId "${bot_token}"
     fi
-    sed -i "s/^CHAT_ID=.*/CHAT_ID=${chatid_id}/" "${WATCHDOG_CONF_FILE}"
+    sed -i "s/^CHAT_ID=.*/CHAT_ID=${chatid_id}/" "${CONF_FILE}"
     # copy the files to their apropriate locations and enable the lista_watchdog.service
-    sudo cp "${WATCHDOG_CONF_FILE}" /etc/listabot/
+    sudo sudo mkdir -p "${CONFIG_DIR}" && sudo cp "${CONF_FILE}" "${CONFIG_DIR}"
     sudo cp lista_watchdog.sh /usr/local/bin/
     sudo cp lista_watchdog.service /etc/systemd/system/
     sudo systemctl daemon-reload
@@ -234,10 +235,14 @@ function main() {
   fi
 
   if [[ "${bot}" = true ]]; then
-    admin_id=$( grep -w "ADMIN_ID" "${BOT_CONF_FILE}" | cut -d"=" -f2 )
+    admin_id=$( grep -w "ADMIN_ID" "${CONF_FILE}" | cut -d"=" -f2 )
     if [[ -z "${admin_id}" ]]; then
       echo "The ADMIN_ID is not set, please send /start to your bot now. The install script will then get the ADMIN_ID from your message"
       getChatId "${bot_token}"
+    fi
+    # copy the files to their apropriate locations and enable the lista_watchdog.service
+    if [[ ! -f "${CONFIG_DIR}${CONF_FILE}" ]]; then
+      sudo mkdir -p "${CONFIG_DIR}" && sudo cp "${CONF_FILE}" "${CONFIG_DIR}"
     fi
     sudo cp lista_bot.service /etc/systemd/system/
     sudo systemctl daemon-reload

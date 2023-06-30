@@ -28,8 +28,7 @@ set -o nounset    # Exposes unset variables
 
 # Initialize all the option variables.
 # This ensures we are not contaminated by variables from the environment.
-WATCHDOG_CONF_FILE="/etc/listabot/lista_watchdog.conf"
-BOT_CONF_FILE="/etc/listabot/lista_bot.conf"
+CONF_FILE="/etc/listabot/listabot.conf"
 BOT_TOKEN=""
 CHAT_ID=""
 DISK_LIMIT=""
@@ -57,8 +56,7 @@ function escapeReservedCharacters() {
 #######################################
 # Load the configuration file.
 # Globals:
-#   WATCHDOG_CONF_FILE
-#   BOT_CONF_FILE
+#   CONF_FILE
 #   BOT_TOKEN
 #   CHAT_ID
 #   DISK_LIMIT
@@ -71,28 +69,20 @@ function escapeReservedCharacters() {
 #   updates the globals to the values set in ista_watchdog.conf
 #######################################
 function loadConfig() {
-  if [[ ! -f "$WATCHDOG_CONF_FILE" ]]; then
-    echo "File '${WATCHDOG_CONF_FILE}' not found. I can't run without this."
+  if [[ ! -f "${CONF_FILE}" ]]; then
+    echo "File \"${CONF_FILE}\" not found. I can't run without this."
     exit
   fi
   # shellcheck disable=SC1090
-  source "${WATCHDOG_CONF_FILE}"
-  if [[ ! -f "$BOT_CONF_FILE" ]]; then
-    echo "ADMIN_ID" >> "$BOT_CONF_FILE"
-    echo "LAST_UPDATE_ID" >> "$BOT_CONF_FILE"
-  fi
-  # shellcheck disable=SC1090
-  source "${BOT_CONF_FILE}"
+  source "${CONF_FILE}"
 
   # check if all watchdog variables are present
-  local conf_complete
-  conf_complete=true
-  local variables
-  variables=("${BOT_TOKEN}" "${DISK_LIMIT}" "${CPU_LIMIT}" "${RAM_LIMIT}" "${CHECK_INTERVAL}")
+  local conf_complete=true
+  local variables=("${BOT_TOKEN}" "${DISK_LIMIT}" "${CPU_LIMIT}" "${RAM_LIMIT}" "${CHECK_INTERVAL}")
   local variable
   for variable in "${variables[@]}"; do
     if [[ -z "${variable}" ]]; then
-      echo "missing variable ${variable} in ${WATCHDOG_CONF_FILE}"
+      echo "missing variable ${variable} in ${CONF_FILE}"
       conf_complete=false
     fi
   done
@@ -110,9 +100,9 @@ function loadConfig() {
     if [[ -z "${CHAT_ID}" ]] || [[ -z "${ADMIN_ID}" ]] || [[ -z "${LAST_UPDATE_ID}" ]]; then
       sleep "$CHECK_INTERVAL"
     else 
-      sed -i "s/^CHAT_ID=.*/CHAT_ID=$CHAT_ID/" $WATCHDOG_CONF_FILE
-      sed -i "s/^ADMIN_ID=.*/ADMIN_ID=$ADMIN_ID/" $BOT_CONF_FILE
-      sed -i "s/^LAST_UPDATE_ID=.*/LAST_UPDATE_ID=$LAST_UPDATE_ID/" $BOT_CONF_FILE
+      sed -i "s/^CHAT_ID=.*/CHAT_ID=$CHAT_ID/" "${CONF_FILE}"
+      sed -i "s/^ADMIN_ID=.*/ADMIN_ID=$ADMIN_ID/" "${CONF_FILE}"
+      sed -i "s/^LAST_UPDATE_ID=.*/LAST_UPDATE_ID=$LAST_UPDATE_ID/" "${CONF_FILE}"
     fi
   done
 }
@@ -157,7 +147,7 @@ function main() {
       # no matter if this request was legitimate, the nextUpdateId has to be increased, for not receiving this update again
       local nextUpdateId
       nextUpdateId=$((lastUpdateID+1))
-      sed -i "s/^LAST_UPDATE_ID=.*/LAST_UPDATE_ID=$lastUpdateID/" $BOT_CONF_FILE
+      sed -i "s/^LAST_UPDATE_ID=.*/LAST_UPDATE_ID=$lastUpdateID/" "${CONF_FILE}"
       if [[ "${adminID}" == "${ADMIN_ID}" ]]; then
         # this is an authorized request. Process it.
         local message
@@ -205,7 +195,7 @@ TXTEOF
                   VARIABLE_TO_SET="RAM_LIMIT"
                 ;;
               esac
-              sed -i "s/^${VARIABLE_TO_SET}=.*/${VARIABLE_TO_SET}=${new_value}/" $WATCHDOG_CONF_FILE
+              sed -i "s/^${VARIABLE_TO_SET}=.*/${VARIABLE_TO_SET}=${new_value}/" "${CONF_FILE}"
               telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "${VARIABLE_TO_SET} set to ${new_value}"
             fi
           ;;
@@ -218,7 +208,7 @@ TXTEOF
                [[ "${new_value}" -gt 100 ]]; then
               telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "error" --text "The argument \"${new_value}\" cannot be used as parameter for ${command[0]}. Make sure you send an integer value between 0 and 100."
             else
-              sed -i "s/^CHECK_INTERVAL=.*/CHECK_INTERVAL=${new_value}/" $WATCHDOG_CONF_FILE
+              sed -i "s/^CHECK_INTERVAL=.*/CHECK_INTERVAL=${new_value}/" "${CONF_FILE}"
               telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "CHECK_INTERVAL set to ${new_value}"
             fi
           ;;
