@@ -244,6 +244,7 @@ function main() {
     if [[ ! -f "${CONFIG_DIR}${CONF_FILE}" ]]; then
       sudo mkdir -p "${CONFIG_DIR}" && sudo cp "${CONF_FILE}" "${CONFIG_DIR}"
     fi
+    sudo cp lista_bot.sh /usr/local/bin/
     sudo cp lista_bot.service /etc/systemd/system/
     sudo systemctl daemon-reload
     sudo systemctl enable lista_bot.service
