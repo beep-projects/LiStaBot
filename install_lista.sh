@@ -114,7 +114,7 @@ function getChatId() {
     error "\"${bot_token}\" does not seem to be a valid bot token, getChatId() cannot work with this. Please check why this error happened."
   fi
 
-  while [[ -z "${chat_id}" ]]; do
+  while [[ -z "${chat_id}" ]] || [[ -z "${admin_id}" ]] || [[ -z "${last_update_id}" ]]; do
     update_json=$( telegram.bot --get_updates --bottoken "${bot_token}" )
     chat_id=$( echo "${update_json}" | jq ".result | [.[].message | select(.text==\"/start\")][-1].chat.id" )
     admin_id=$( echo "${update_json}" | jq ".result | [.[].message | select(.text==\"/start\")][-1].from.id" )
@@ -123,6 +123,7 @@ function getChatId() {
       echo "please send /start to bot #${bot_token}, I am still waiting ..."
       sleep 10
     else #TODO check the globals for these files
+      printf "CHAT_ID: %s, ADMIN_ID: %s, LAST_UPDATE_ID: %s\n" "$chat_id" "$admin_id" "$last_update_id"
       sed -i "s/^CHAT_ID=.*/CHAT_ID=$chat_id/" $CONF_FILE
       sed -i "s/^ADMIN_ID=.*/ADMIN_ID=$admin_id/" $CONF_FILE
       sed -i "s/^LAST_UPDATE_ID=.*/LAST_UPDATE_ID=$last_update_id/" $CONF_FILE
@@ -204,6 +205,10 @@ function main() {
     sed -i "s/^CHAT_ID=.*/CHAT_ID=${client_id}/" "${CONF_FILE}"
   fi
 
+  if [[ "${lista}" = true ]]; then
+    sudo cp lista.sh /usr/local/bin
+  fi
+
   if [[ "${watchdog}" = true ]]; then
     if ! command -v telegram.bot &> /dev/null; then
         # install dependency telegram.bot
@@ -232,6 +237,7 @@ function main() {
     sudo cp lista_watchdog.service /etc/systemd/system/
     sudo systemctl daemon-reload
     sudo systemctl enable lista_watchdog.service
+    sudo systemctl start lista_watchdog.service
   fi
 
   if [[ "${bot}" = true ]]; then
@@ -248,10 +254,7 @@ function main() {
     sudo cp lista_bot.service /etc/systemd/system/
     sudo systemctl daemon-reload
     sudo systemctl enable lista_bot.service
-  fi
-
-  if [[ "${lista}" = true ]]; then
-    sudo cp lista.sh /usr/local/bin
+    sudo systemctl start lista_bot.service
   fi
 }
 

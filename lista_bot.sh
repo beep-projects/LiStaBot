@@ -94,9 +94,12 @@ function loadConfig() {
   local update_json
   while [[ -z "${CHAT_ID}" ]] || [[ -z "${ADMIN_ID}" ]] || [[ -z "${LAST_UPDATE_ID}" ]]; do
     update_json=$( telegram.bot --get_updates --bottoken "${BOT_TOKEN}" )
+    local CHAT_ID
     CHAT_ID=$( echo "${update_json}" | jq ".result | [.[].message | select(.text==\"/start\")][-1].chat.id" )
-    ADMIN_ID=$( echo "${updateJSON}" | jq ".result | [.[].message | select(.text==\"/start\")][-1].from.id" )
-    LAST_UPDATE_ID=$( echo "${updateJSON}" | jq ".result | [select(.[].message.text==\"/start\")][] | .[-1].update_id" )
+    local ADMIN_ID
+    ADMIN_ID=$( echo "${update_json}" | jq ".result | [.[].message | select(.text==\"/start\")][-1].from.id" )
+    local LAST_UPDATE_ID
+    LAST_UPDATE_ID=$( echo "${update_json}" | jq ".result | [select(.[].message.text==\"/start\")][] | .[-1].update_id" )
     if [[ -z "${CHAT_ID}" ]] || [[ -z "${ADMIN_ID}" ]] || [[ -z "${LAST_UPDATE_ID}" ]]; then
       sleep "$CHECK_INTERVAL"
     else 
@@ -109,9 +112,9 @@ function loadConfig() {
 
 function setCommandList() {
   declare -a commandsList
-  commandsList=("status=get system status"
-              "uptime=call uptime"
-              "df=call df -h"
+  commandsList=("status=system status"
+              "uptime=uptime"
+              "df=df -h"
               "reboot=reboot server"
               "shutdown=shutdown server"
               "restartservice=restart lista_bot.service"
@@ -126,9 +129,10 @@ function main() {
   nextUpdateId=$((LAST_UPDATE_ID+1))
   local attackCount
   attackCount=0
-
+  # make sure that the command list is set in the bot
+  setCommandList
   # start the bot loop for continuously checking for updates on the telegram channel
-  telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "Awaiting orders\!"
+  telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "lista\_bot is running\!"
   while :
   do
     # check if there is a new update on telegram
@@ -156,80 +160,83 @@ function main() {
         message="${message#\"}"
         declare -a command
         IFS=" " read -r -a command <<< "$message"
-        #local cmdArray=($( ${command[0]}))
         case "${command[0]}" in
           /help)
-            read -r -d '' helpText <<-'TXTEOF'
-              /setdisklimit [VALUE] - set the alert threshold for disk usage to [VALUE]
-              /setcpulimit [VALUE] - set the alert threshold for cpu usage to [VALUE]
-              /setramlimit [VALUE] - set the alert threshold for ram usage to [VALUE]
-              /setcheckinterval [VALUE] - set the time interval in which the watchdog checks the limits to [VALUE] seconds
-              /status - get system status information
-              /uptime - send the output of uptime
-              /df - send the output of df -h"
-              /reboot - reboot server
-              /shutdown - shutdown server
-              /restartservice - restart lista_bot.service
-              /help - shows this info
+            read -r -d '' helpText <<'TXTEOF'
+  /setdisklimit [VALUE] - set the alert threshold for disk usage to [VALUE]. Short /sdl
+  /setcpulimit [VALUE] - set the alert threshold for cpu usage to [VALUE]. Short /scl
+  /setramlimit [VALUE] - set the alert threshold for ram usage to [VALUE]. Short /srl
+  /setcheckinterval [VALUE] - set the time interval in which the watchdog checks the limits to [VALUE] seconds. Short /sci
+  /status - get system status information
+  /uptime - send the output of uptime
+  /df - send the output of df -h"
+  /reboot - reboot server
+  /shutdown - shutdown server
+  /restartservice - restart lista_bot.service
+  /help - shows this info
 TXTEOF
-            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --question --title "help" --text "${helpText}"
+            helpText=$( escapeReservedCharacters "${helpText}" )
+            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "available commands" --text "${helpText}"
           ;;
-          /setdisklimit|/setcpulimit|/setramlimit)
+          /setdisklimit|/sdl|/setcpulimit|/scl|/setramlimit|/srl)
             local new_value
-            new_value="${command[1]}"
+            new_value="${command[1]-}"
             if [[ -z "${new_value}" ]] || \
-               [[ "${new_value}" =~ ^[0-9]{1,3}$ ]] || \
-               [[ "${new_value}" -lt 0 ]] || \
+               [[ ! "${new_value}" =~ ^[0-9]{1-3}$ ]] || \
                [[ "${new_value}" -gt 100 ]]; then
               telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "error" --text "The argument \"${new_value}\" cannot be used as parameter for ${command[0]}. Make sure you send an integer value between 0 and 100."
             else
               local VARIABLE_TO_SET=""
               case "${command[0]}" in
-                /setdisklimit)
+                /setdisklimit|/sdl)
                   VARIABLE_TO_SET="DISK_LIMIT"
                 ;;
-                /setcpulimit)
+                /setcpulimit|/scl)
                   VARIABLE_TO_SET="CPU_LIMIT"
                 ;;
-                /setramlimit)
+                /setramlimit|/srl)
                   VARIABLE_TO_SET="RAM_LIMIT"
                 ;;
               esac
               sed -i "s/^${VARIABLE_TO_SET}=.*/${VARIABLE_TO_SET}=${new_value}/" "${CONF_FILE}"
-              telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "${VARIABLE_TO_SET} set to ${new_value}"
+              telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "${VARIABLE_TO_SET//\_/\\\_} set to ${new_value}"
             fi
           ;;
-          /setcheckinterval)
+          /setcheckinterval|/sci)
             local new_value
-            new_value="${command[1]}"
+            new_value="${command[1]-}"
             if [[ -z "${new_value}" ]] || \
-               [[ "${new_value}" =~ ^[0-9]{1,3}$ ]] || \
-               [[ "${new_value}" -lt 0 ]] || \
-               [[ "${new_value}" -gt 100 ]]; then
-              telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "error" --text "The argument \"${new_value}\" cannot be used as parameter for ${command[0]}. Make sure you send an integer value between 0 and 100."
+               [[ ! "${new_value}" =~ ^[0-9]+$ ]]; then
+              telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "error" --text "The argument \"${new_value}\" cannot be used as parameter for ${command[0]}. Make sure you send an integer value."
             else
               sed -i "s/^CHECK_INTERVAL=.*/CHECK_INTERVAL=${new_value}/" "${CONF_FILE}"
-              telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "CHECK_INTERVAL set to ${new_value}"
+              telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "CHECK\_INTERVAL set to ${new_value}"
+              # lista_watchdog.service might be sleeping in a long interval, restart it to apply the new check interval imediately
+              sudo systemctl restart lista_watchdog.service
             fi
           ;;
           /reboot)
-            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "condocam\.ai will reboot now"
+            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "rebooting the server now"
             sudo reboot -f
           ;;
           /shutdown)
-            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "condocam\.ai will shutdown now"
+            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "shutting down the server now"
             sudo shutdown now
           ;;
           /restart)
-            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "motioneye\.service will be restarted"
-            sudo systemctl restart lista_watchdog.service
+            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "restarting lista_watchdog\.service"
+            sudo systemctl restart lista_bot.service
           ;;
           /status)
-            local cpuTemp
-            cpuTemp=$( vcgencmd measure_temp | grep -oE '[0-9]*\.[0-9]*')"°C"
+            #local systemTemps
+            #systemTemps=$( paste <(cat /sys/class/thermal/thermal_zone*/type) <(cat /sys/class/thermal/thermal_zone*/temp) | awk '{printf "%-16s %02.1f°C\n", $1, $2/1000}' )
+            #systemTemps=$( escapeReservedCharacters "${systemTemps}" )
+            #local status
+            #status="*System Temperatures:*\n ${systemTemps}"
             local status
-            status="*CPU temp:* ${cpuTemp}"
-            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "status" --text "${status}"
+            status=$( lista.sh --status )
+            status=$( escapeReservedCharacters "${status}" )
+            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "status" --text "\`\`\`\n${status}\n\`\`\`"
           ;;
           /uptime)
             local text
@@ -243,7 +250,7 @@ TXTEOF
           ;;
           /start)
             # nothing to do, but it is a telegram bot default command, so I should catch it
-            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "Awaiting orders\!"
+            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "Already running, ignoring /start command\!"
           ;;
           *)
             telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "unknown command" --text "command \"${command[0]}\" not understood"

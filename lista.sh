@@ -67,6 +67,57 @@ function error() {
 }
 
 #######################################
+# Get some information about the system.
+# Inspired by Ubuntu's landscape-sysinfo
+# Globals:
+#   None
+# Arguments:
+#   None
+# Outputs:
+#   Prints information about the system
+#######################################
+function getSystemStatus() {
+  local systemload
+  systemload="$( cut -d " " -f 1 < /proc/loadavg )"
+  local loggedin_users
+  loggedin_users="$( users )"
+  local usage_of_root
+  usage_of_root=$( df -h / | awk 'NR==2{ print $5 }' )
+  local size_of_root
+  size_of_root=$( df -h / | awk 'NR==2{ print $2 }' )
+  size_of_root="${size_of_root//M/ MB}"
+  size_of_root="${size_of_root//G/ GB}"
+  size_of_root="${size_of_root//T/ TB}"
+  local memory_usage
+  memory_usage=$( free -m | awk 'NR==2{printf "%d", $3*100/($2?$2:1) }' )"%"
+  local swap_usage
+  swap_usage=$( free -m | awk 'NR==3{printf "%d", $3*100/($2?$2:1) }' )"%"
+  local temperature #maximum temperature in the thermal zones, most likely the CPU
+  temperature=$( paste <(cat /sys/class/thermal/thermal_zone*/temp) | awk 'BEGIN{max=0}{if(($1)>max) max=($1)}END{printf "%02.1f°C\n", max/1000}' )
+  local num_of_processes
+  num_of_processes=$( ps aux | awk '{print $8}' | wc -l )
+  local num_of_zombies
+  # cat finishes to slow, sometimes it shows up as zombie, skip it with next
+  num_of_zombies=$( ps aux | awk '/\[cat\] <defunct>$/ {next}{print $8}' | grep -c Z )
+  local system_info
+  printf -v system_info "%-25s %s\n" "System load:"             "${systemload}" \
+                                     "Usage of /:"              "${usage_of_root} of ${size_of_root}" \
+                                     "Memory usage:"            "${memory_usage}" \
+                                     "Swap usage:"              "${swap_usage}" \
+                                     "Temperature:"             "${temperature}" \
+                                     "Processes:"               "${num_of_processes} (${num_of_zombies} Zombies)" \
+                                     "Users logged in:"         "${loggedin_users}" \
+  local ipv4_info
+  ipv4_info=$( ip -o addr show scope global | awk '$3 == "inet" {split($4, addr, "/"); printf "%-25s %s\n", "IPv4 address for "$2":", addr[1]}' )
+  local ipv6_info
+  ipv6_info=$( ip -o addr show scope global | awk '$3 == "inet6" {split($4, addr, "/"); printf "%-25s %s\n", "IPv6 address for "$2":", addr[1]}' )
+  printf "%s%s\n%s\n" "${system_info}" \
+                      "${ipv4_info}" \
+                      "${ipv6_info}"
+
+}
+
+#######################################
 # Get the current memory usage of the system.
 # Globals:
 #   None
@@ -92,7 +143,6 @@ function getMemoryUsageTopX() {
   ps ahux --sort=-%mem | awk -v x="${1:-5}" '/ps ahux --sort=-%mem/ {x=x+1;next} NR<=x{printf"%s %6d %s\n",$4,$2,$11}'
 }
 
-
 #######################################
 # Get the current load on all CPU cores of the system.
 # Globals:
@@ -104,16 +154,18 @@ function getMemoryUsageTopX() {
 #   each following entry is for another CPU core, CPU0, CPU1, CPU2, ...
 #######################################
 function getCpuUsage() {
+  local cpu_cores
   cpu_cores=$( lscpu | grep '^CPU(s):' | awk '{print int($2)}' )
   duration=${1:-5}
+  local mpstats_output=""
   if [ "${duration}" -le 0 ]; then
     mpstats_output=$( mpstat -P ALL 0 | tail -n $((cpu_cores + 1)) )
   else
     mpstats_output=$( mpstat -P ALL 1 "${duration}" | tail -n $((cpu_cores + 1)) )
   fi
-  mpstat_array=()
+  local mpstat_array=()
   read -r -a mpstat_array -d '' <<< "$mpstats_output"
-
+  local len
   len=${#mpstat_array[@]}
   # mpstats values have the following structure
   # time   CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
@@ -161,6 +213,7 @@ function main() {
   fi
 
   # loop to retrieve arguments
+  local STATUS="false"
   local RAM="false"
   local RAM_TOP_X="false"
   local CPU="false"
@@ -172,48 +225,55 @@ function main() {
   while :; do
     case ${1:-} in
       -h|-\?|--help)
-      help # show help for this script
-      exit 0
+        help # show help for this script
+        exit 0
       ;;
-      --ramusage|-ram|-mem)
-      RAM="true"
+      --status)
+        STATUS="true"
       ;;
-      --ramusagetopx|-ramtopx|-memtopx)
-      RAM_TOP_X="true"
-      if [[ ${2:-} == ?(-)+([0-9]) ]]; then
-        ram_top_x=$2
-        shift
-      fi
+        --ramusage|-ram|-mem)
+        RAM="true"
+      ;;
+        --ramusagetopx|-ramtopx|-memtopx)
+        RAM_TOP_X="true"
+        if [[ ${2:-} == ?(-)+([0-9]) ]]; then
+          ram_top_x=$2
+          shift
+        fi
       ;;
       --cpuusage|-cpu)
-      CPU="true"
-      if [[ ${2:-} == ?(-)+([0-9]) ]]; then
-        measurement_duration=$2
-        shift
-      fi
+        CPU="true"
+        if [[ ${2:-} == ?(-)+([0-9]) ]]; then
+          measurement_duration=$2
+          shift
+        fi
       ;;
       --cpuloadtopx|-cputopx)
-      CPU_TOP_X="true"
-      if [[ ${2:-} == ?(-)+([0-9]) ]]; then
-        cpu_top_x=$2
-        shift
-      fi
+        CPU_TOP_X="true"
+        if [[ ${2:-} == ?(-)+([0-9]) ]]; then
+          cpu_top_x=$2
+          shift
+        fi
       ;;
       --diskusage|-disk)
-      DISK="true"
+        DISK="true"
       ;;
       --) # End of all options.
-      shift
-      break
+        shift
+        break
       ;;
       -?*)
-      printf '[lista.sh] WARN: Unknown option (ignored): %s\n' "$1" >&2
+        printf '[lista.sh] WARN: Unknown option (ignored): %s\n' "$1" >&2
       ;;
       *) # Default case: No more options, so break out of the loop.
-      break
+        break
     esac
     shift
   done
+
+  if [ "${STATUS}" = "true" ]; then
+    getSystemStatus
+  fi
 
   if [ "${RAM}" = "true" ]; then
     getMemoryUsage
