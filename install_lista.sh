@@ -42,15 +42,15 @@ CONF_FILE="listabot.conf"
 function help() {
 cat <<END
   install.sh: script to install scripts from the LiStaBot project
-    Main parameters are :
-  Options are :
-    -h/-?/--help           display this help and exit
+  Main parameters are :
+    --lista                install only lista.sh
+    --watchdog             install lista.sh and the watchdog
+    --bot                  install lista.sh, the watchdog and the bot
     -bt|-token|--bottoken  the telegram API bot token to use, mandatory
                            when installing --bot or --watchdog
+  Options are :
+    -h/-?/--help           display this help and exit
     -cid|--chatid          the chat id to use for sending messages to
-    --bot                  install lista.sh, the bot and the watchdog
-    --watchdog             install the lista.sh and the watchdog
-    --lista                install only lista.sh
 END
 }
 
@@ -196,6 +196,10 @@ function main() {
     esac
     shift
   done
+
+  if [[ -z "${lista}" ]] && [[ -z "${watchdog}" ]] && [[ -z "${bot}" ]]; then
+    error "You did not give one of the mandatory option --list, --watchdog or --bot. Nothing to install. Exit"
+  fi
 
   if [[ -n "${bot_token}" ]]; then
     sed -i "s/^BOT_TOKEN=.*/BOT_TOKEN=${bot_token}/" "${CONF_FILE}"

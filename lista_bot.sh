@@ -163,17 +163,17 @@ function main() {
         case "${command[0]}" in
           /help)
             read -r -d '' helpText <<'TXTEOF'
-  /setdisklimit [VALUE] - set the alert threshold for disk usage to [VALUE]. Short /sdl
-  /setcpulimit [VALUE] - set the alert threshold for cpu usage to [VALUE]. Short /scl
-  /setramlimit [VALUE] - set the alert threshold for ram usage to [VALUE]. Short /srl
-  /setcheckinterval [VALUE] - set the time interval in which the watchdog checks the limits to [VALUE] seconds. Short /sci
-  /status - get system status information
-  /uptime - send the output of uptime
-  /df - send the output of df -h"
-  /reboot - reboot server
-  /shutdown - shutdown server
-  /restartservice - restart lista_bot.service
-  /help - shows this info
+/setdisklimit [VALUE] - set the alert threshold for disk usage to [VALUE] percent. Only integers allowed. Short /sdl
+/setcpulimit [VALUE] - set the alert threshold for cpu usage to [VALUE] percent. Only integers allowed. Short /scl
+/setramlimit [VALUE] - set the alert threshold for ram usage to [VALUE] percent. Only integers allowed. Short /srl
+/setcheckinterval [VALUE] - set the time interval in which the watchdog checks the limits to [VALUE] seconds. Only integers allowed. Short /sci
+/status - get system status information
+/uptime - send the output of uptime
+/df - send the output of df -h"
+/reboot - reboot server
+/shutdown - shutdown server
+/restartservice - restart lista_bot.service
+/help - shows this info
 TXTEOF
             helpText=$( escapeReservedCharacters "${helpText}" )
             telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "available commands" --text "${helpText}"
