@@ -82,7 +82,7 @@ Options are :
    version=$(curl -sI https://github.com/beep-projects/LiStaBot/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}')
    wget "https://github.com/beep-projects/LiStaBot/archive/refs/tags/${version}.zip"
    unzip ""${version}.zip"
-   cd "telegram.bot-${version#v}"
+   cd "LiStaBot-${version#v}"
    ```
    
 2. Run the installation script. Note, during installation of ```--bot``` or ```--watchdog```, the script requires you to send ```/start``` to the created Telegram bot. This message will be used to set up communication with your Telegram account.
