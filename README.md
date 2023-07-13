@@ -27,7 +27,7 @@ A shell script used to provide you access via Telegram to the configuration of l
 
 ## <a name="project-requirements"/>Project Requirements
 
-The used script are developed and tested using a bash shell. Following tools (excluding Linux build ins) are used the script, most should be part any common Linux distributions:
+The scripts are developed and tested on bash shell. Following tools (excluding Linux build ins) are used inside the scripts, most of these should be part of any common Linux distributions:
 
 - ```awk``` (POSIX)
 - ```cut``` (GNU core utils)
@@ -117,7 +117,7 @@ The script `lista_bot.sh` is used for communication between you and your bot. Du
 /gcl - get CPU load Top 5
 /gru - get RAM usage Top 5
 /uptime - send the output of uptime
-/df - send the output of df -h"
+/df - send the output of df -h
 /reboot - reboot server
 /shutdown - shutdown server
 /restartservice - restart lista_bot.service

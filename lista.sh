@@ -144,7 +144,7 @@ function getMemoryUsageTopX() {
   num_entries=$(( ${1:-5}+1 ))
   line_width=${2:-120}
   # shellcheck disable=SC2009 #disabled, because I see no benefit in using pgrep for this task
-  ps -eo pmem,pid,user,command --sort=-%mem | grep -v "ps -eo pmem,pid,user,command --sort=-c" | head -n${num_entries} | cut -c -${line_width}
+  ps -eo pmem,pid,user,command --sort=-%mem | grep -v "ps -eo pmem,pid,user,command --sort=-c" | head -n${num_entries} | cut -c -"${line_width}"
   #ps ahux --sort=-%mem | awk -v x="${1:-5}" '/ps ahux --sort=-%mem/ {x=x+1;next} NR<=x{printf"%s %6d %s\n",$4,$2,$11}'
 }
 
@@ -193,7 +193,7 @@ function getCpuLoadTopX() {
   num_entries=$(( ${1:-5}+1 ))
   line_width=${2:-120}
   # shellcheck disable=SC2009 #disabled, because I see no benefit in using pgrep for this task
-  ps -eo pcpu,pid,user,command --sort=-c | grep -v "ps -eo pcpu,pid,user,command --sort=-c" | head -n${num_entries} | cut -c -${line_width}
+  ps -eo pcpu,pid,user,command --sort=-c | grep -v "ps -eo pcpu,pid,user,command --sort=-c" | head -n${num_entries} | cut -c -"${line_width}"
   #ps ahux --sort=-c | awk -v x="${1:-5}" '/ps ahux --sort=-c/ {x=x+1;next} NR<=x{printf"%s %6d %s\n",$3,$2,$11}'
 }
 

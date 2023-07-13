@@ -247,7 +247,7 @@ TXTEOF
               telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "error" --text "The argument \"${command[1]:-} ${command[2]:-}\" cannot be used as parameter for ${command[0]}. Make sure you send only positive integer values."
             else
               local cpuload
-              cpuload=$( lista.sh --cpuloadtopx ${num_entries} --linewidth ${line_width})
+              cpuload=$( lista.sh --cpuloadtopx "${num_entries}" --linewidth "${line_width}" )
               cpuload=$( escapeReservedCharacters "${cpuload}" )
               telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "CPU Load Top ${num_entries}" --text "\`\`\`\n${cpuload}\n\`\`\`"
             fi
@@ -264,7 +264,7 @@ TXTEOF
               telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "error" --text "The argument \"${command[1]:-} ${command[2]:-}\" cannot be used as parameter for ${command[0]}. Make sure you send only positive integer values."
             else
               local cpuload
-              cpuload=$( lista.sh --ramusagetopx ${num_entries} --linewidth ${line_width})
+              cpuload=$( lista.sh --ramusagetopx "${num_entries}" --linewidth "${line_width}" )
               cpuload=$( escapeReservedCharacters "${cpuload}" )
               telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "RAM Usage Top ${num_entries}" --text "\`\`\`\n${cpuload}\n\`\`\`"
             fi
