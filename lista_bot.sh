@@ -113,6 +113,7 @@ function loadConfig() {
 function setCommandList() {
   declare -a commandsList
   commandsList=("status=system status"
+              "gcl=get top 5 for CPU load"
               "uptime=uptime"
               "df=df -h"
               "reboot=reboot server"
@@ -173,6 +174,7 @@ function main() {
 /setcpulimit [VALUE] - set the alert threshold for cpu usage to [VALUE] percent. Only integers allowed. Short /scl
 /setramlimit [VALUE] - set the alert threshold for ram usage to [VALUE] percent. Only integers allowed. Short /srl
 /setcheckinterval [VALUE] - set the time interval in which the watchdog checks the limits to [VALUE] seconds. Only integers allowed. Short /sci
+/getcpuloadtopx [VALUE] - get the [values] processes causing the highest CPU load. If omitted, [VALUE] defaults to 5.Short /gcl
 /status - get system status information
 /uptime - send the output of uptime
 /df - send the output of df -h"
@@ -219,6 +221,19 @@ TXTEOF
               telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "CHECK\_INTERVAL set to ${new_value}"
               # lista_watchdog.service might be sleeping in a long interval, restart it to apply the new check interval imediately
               sudo systemctl restart lista_watchdog.service
+            fi
+          ;;
+          /getcpuloadtopx|/gcl)
+            local num_entries
+            num_entries="${command[1]-5}"
+            if [[ -z "${num_entries}" ]] || \
+               [[ ! "${num_entries}" =~ ^[0-9]+$ ]]; then
+              telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "error" --text "The argument \"${num_entries}\" cannot be used as parameter for ${command[0]}. Make sure you send an integer value."
+            else
+              local cpuload
+              cpuload=$( lista.sh --cpuloadtopx ${num_entries} )
+              cpuload=$( escapeReservedCharacters "${cpuload}" )
+              telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "CPU Load Top ${num_entries}" --text "\`\`\`\n${cpuload}\n\`\`\`"
             fi
           ;;
           /reboot)
