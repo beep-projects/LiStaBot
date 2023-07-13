@@ -170,11 +170,22 @@ function main() {
         case "${command[0]}" in
           /help)
             read -r -d '' helpText <<'TXTEOF'
-/setdisklimit [VALUE] - set the alert threshold for disk usage to [VALUE] percent. Only integers allowed. Short /sdl
-/setcpulimit [VALUE] - set the alert threshold for cpu usage to [VALUE] percent. Only integers allowed. Short /scl
-/setramlimit [VALUE] - set the alert threshold for ram usage to [VALUE] percent. Only integers allowed. Short /srl
-/setcheckinterval [VALUE] - set the time interval in which the watchdog checks the limits to [VALUE] seconds. Only integers allowed. Short /sci
-/getcpuloadtopx [VALUE] - get the [values] processes causing the highest CPU load. If omitted, [VALUE] defaults to 5.Short /gcl
+/setdisklimit [VALUE] - set the alert threshold for disk usage to [VALUE] percent. Only integers allowed. 
+  Short /sdl
+/setcpulimit [VALUE] - set the alert threshold for cpu usage to [VALUE] percent. Only integers allowed.
+  Short /scl
+/setramlimit [VALUE] - set the alert threshold for ram usage to [VALUE] percent. Only integers allowed.
+  Short /srl
+/setcheckinterval [VALUE] - set the time interval in which the watchdog checks the limits to [VALUE] seconds.
+  Short /sci
+/getcpuloadtopx [VALUE1] [VALUE2]- get the [VALUE1] processes causing the highest CPU load. 
+  If omitted, [VALUE1] defaults to 5. You can pass [VALUE2] to set the line width of the output.
+  [VALUE2] defaults to 120.
+  Short /gcl
+/getramusagetopx [VALUE1] [VALUE2] - get the [VALUE1] processes having the highest RAM usage.
+  If omitted, [VALUE1] defaults to 5. You can pass [VALUE2] to set the line width of the output.
+  [VALUE2] defaults to 120.
+  Short /gru
 /status - get system status information
 /uptime - send the output of uptime
 /df - send the output of df -h"
@@ -188,7 +199,7 @@ TXTEOF
           ;;
           /setdisklimit|/sdl|/setcpulimit|/scl|/setramlimit|/srl)
             local new_value
-            new_value="${command[1]-}"
+            new_value="${command[1]:-}"
             if [[ -z "${new_value}" ]] || \
                [[ ! "${new_value}" =~ ^[0-9]{1-3}$ ]] || \
                [[ "${new_value}" -gt 100 ]]; then
@@ -212,7 +223,7 @@ TXTEOF
           ;;
           /setcheckinterval|/sci)
             local new_value
-            new_value="${command[1]-}"
+            new_value="${command[1]:-}"
             if [[ -z "${new_value}" ]] || \
                [[ ! "${new_value}" =~ ^[0-9]+$ ]]; then
               telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "error" --text "The argument \"${new_value}\" cannot be used as parameter for ${command[0]}. Make sure you send an integer value."
@@ -225,15 +236,36 @@ TXTEOF
           ;;
           /getcpuloadtopx|/gcl)
             local num_entries
-            num_entries="${command[1]-5}"
+            num_entries="${command[1]:-5}"
+            local line_width
+            line_width="${command[2]:-120}"
             if [[ -z "${num_entries}" ]] || \
-               [[ ! "${num_entries}" =~ ^[0-9]+$ ]]; then
-              telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "error" --text "The argument \"${num_entries}\" cannot be used as parameter for ${command[0]}. Make sure you send an integer value."
+               [[ ! "${num_entries}" =~ ^[0-9]+$ ]] || \
+               [[ -z "${line_width}" ]] || \
+               [[ ! "${line_width}" =~ ^[0-9]+$ ]]; then
+              telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "error" --text "The argument \"${command[1]:-} ${command[2]:-}\" cannot be used as parameter for ${command[0]}. Make sure you send only positive integer values."
             else
               local cpuload
-              cpuload=$( lista.sh --cpuloadtopx ${num_entries} )
+              cpuload=$( lista.sh --cpuloadtopx ${num_entries} --linewidth ${line_width})
               cpuload=$( escapeReservedCharacters "${cpuload}" )
               telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "CPU Load Top ${num_entries}" --text "\`\`\`\n${cpuload}\n\`\`\`"
+            fi
+          ;;
+          /getramusagetopx|/gru)
+            local num_entries
+            num_entries="${command[1]:-5}"
+            local line_width
+            line_width="${command[2]:-120}"
+            if [[ -z "${num_entries}" ]] || \
+               [[ ! "${num_entries}" =~ ^[0-9]+$ ]] || \
+               [[ -z "${line_width}" ]] || \
+               [[ ! "${line_width}" =~ ^[0-9]+$ ]]; then
+              telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "error" --text "The argument \"${command[1]:-} ${command[2]:-}\" cannot be used as parameter for ${command[0]}. Make sure you send only positive integer values."
+            else
+              local cpuload
+              cpuload=$( lista.sh --ramusagetopx ${num_entries} --linewidth ${line_width})
+              cpuload=$( escapeReservedCharacters "${cpuload}" )
+              telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "RAM Usage Top ${num_entries}" --text "\`\`\`\n${cpuload}\n\`\`\`"
             fi
           ;;
           /reboot)

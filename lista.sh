@@ -246,21 +246,21 @@ function main() {
       ;;
         --ramusagetopx|-ramtopx|-memtopx)
         RAM_TOP_X="true"
-        if [[ ${2:-} =~ ^[0-9]+ ]]; then
+        if [[ ${2:-} =~ ^[0-9]+$ ]]; then
           ram_top_x=$2
           shift
         fi
       ;;
       --cpuusage|-cpu)
         CPU="true"
-        if [[ ${2:-} =~ ^[0-9]+ ]]; then
+        if [[ ${2:-} =~ ^[0-9]+$ ]]; then
           measurement_duration=$2
           shift
         fi
       ;;
       --cpuloadtopx|-cputopx)
         CPU_TOP_X="true"
-        if [[ ${2:-} =~ ^[0-9]+ ]]; then
+        if [[ ${2:-} =~ ^[0-9]+$ ]]; then
           cpu_top_x=$2
           shift
         fi
@@ -269,7 +269,7 @@ function main() {
         DISK="true"
       ;;
       --linewidth|-lw)
-        if [[ ${2:-} =~ ^[0-9]+ ]]; then
+        if [[ ${2:-} =~ ^[0-9]+$ ]]; then
           line_width=$2
           shift
         fi
