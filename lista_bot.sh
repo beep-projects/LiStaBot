@@ -141,11 +141,17 @@ function main() {
     local result
     result=$( echo "${updateJSON}" | jq '.result' )
 
-    if [ -n "${updateJSON}" ] && [ "${result}" != "[]" ]; then
+    if [[ -n "${updateJSON}" ]] && [[ "${result}" != "[]" ]] && [[ "${result}" != "null" ]]; then
       # the bot received an update
       # parse the received JSON data
       local lastUpdateID
       lastUpdateID=$( echo "${updateJSON}" | jq '.result | .[0].update_id' )
+      if [[ -z ${lastUpdateID} ]] || [[ ! ${lastUpdateID} =~ ^(-)?[0-9]+$ ]]; then
+        # there seems to be a problem in commuication with Telegram servers
+        # sleep to avoid busy waiting and then continue from top
+        sleep 1
+        continue
+      fi
       local adminID
       adminID=$( echo "${updateJSON}" | jq '.result | .[0].message.from.id' )
       # no matter if this request was legitimate, the nextUpdateId has to be increased, for not receiving this update again
@@ -265,7 +271,12 @@ TXTEOF
           exit 0 # indicate no failure, so that the service does not get restarted
         fi
       fi
-    fi # else the getUpdate just timed out, start waiting again
+    else
+      # Either the getUpdate just timed out, or there is a problem in commuication with Telegram servers
+      # sleep to avoid busy waiting and then continue from top
+      sleep 1
+    fi # end process getUpdate
+    
   done
   # we should not end up here
   telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --text "I'm done for now\! Service script exited\."
