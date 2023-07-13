@@ -40,14 +40,15 @@ function help() {
 cat <<END
   lista.sh: script to get status information about a Linux system
   Options are :
-    -h/-?/--help                         display this help and exit
-    --ramusage|-ram|-mem                 get the current RAM usage
-    --ramusagetopx|-ramtopx|-memtopx)    get the top X processes for CPU usage. Accepts parameter X, which defaults to 5
-    --cpuusage|-cpu                      get the CPU usage. Accepts parameter measurement duration in seconds, which defaults to 5s if unset
-                                         Prints average load over all CPU cores. The first value is the overall load,
-                                         each following entry is for another CPU core, CPU0, CPU1, CPU2, ...
-    --cpuloadtopx|-cputopx)              get the top X processes for CPU usage. Accepts parameter X, which defaults to 5
-    --diskusage|-disk)                   get the current disk usage as percentage of installed RAM
+    --help|-h|-?                        display this help and exit
+    --ramusage|-ram|-mem                get the current RAM usage
+    --ramusagetopx|-ramtopx|-memtopx    get the top X processes for CPU usage. Accepts parameter X, which defaults to 5
+    --cpuusage|-cpu                     get the CPU usage. Accepts parameter measurement duration in seconds, which defaults to 5s if unset
+                                        Prints average load over all CPU cores. The first value is the overall load,
+                                        each following entry is for another CPU core, CPU0, CPU1, CPU2, ...
+    --cpuloadtopx|-cputopx              get the top X processes for CPU usage. Accepts parameter X, which defaults to 5
+    --diskusage|-disk                   get the current disk usage as percentage of device size for each non tempfs device
+    --linewidth|-lw                     sets the linewidth for output from --ramusagetopx and --cpuloadtopx
 END
 }
 
@@ -63,7 +64,7 @@ END
 #######################################
 function error() {
     printf "%s\n" "${1}" >&2 ## Send message to stderr.
-    exit "${2-1}" ## Return a code specified by $2, or 1 by default.
+    exit "${2:-1}" ## Return a code specified by $2, or 1 by default.
 }
 
 #######################################
@@ -140,7 +141,11 @@ function getMemoryUsage() {
 #   Prints the top X processes in terms of RAM usage. The values are %MEM, PID, COMMAND
 #######################################
 function getMemoryUsageTopX() {
-  ps ahux --sort=-%mem | awk -v x="${1:-5}" '/ps ahux --sort=-%mem/ {x=x+1;next} NR<=x{printf"%s %6d %s\n",$4,$2,$11}'
+  num_entries=$(( ${1:-5}+1 ))
+  line_width=${2:-120}
+  # shellcheck disable=SC2009 #disabled, because I see no benefit in using pgrep for this task
+  ps -eo pmem,pid,user,command --sort=-%mem | grep -v "ps -eo pmem,pid,user,command --sort=-c" | head -n${num_entries} | cut -c -${line_width}
+  #ps ahux --sort=-%mem | awk -v x="${1:-5}" '/ps ahux --sort=-%mem/ {x=x+1;next} NR<=x{printf"%s %6d %s\n",$4,$2,$11}'
 }
 
 #######################################
@@ -186,7 +191,7 @@ function getCpuUsage() {
 #######################################
 function getCpuLoadTopX() {
   num_entries=$(( ${1:-5}+1 ))
-  line_width=120
+  line_width=${2:-120}
   # shellcheck disable=SC2009 #disabled, because I see no benefit in using pgrep for this task
   ps -eo pcpu,pid,user,command --sort=-c | grep -v "ps -eo pcpu,pid,user,command --sort=-c" | head -n${num_entries} | cut -c -${line_width}
   #ps ahux --sort=-c | awk -v x="${1:-5}" '/ps ahux --sort=-c/ {x=x+1;next} NR<=x{printf"%s %6d %s\n",$3,$2,$11}'
@@ -226,6 +231,7 @@ function main() {
   local measurement_duration=3
   local cpu_top_x=5
   local ram_top_x=5
+  local line_width=120
   while :; do
     case ${1:-} in
       -h|-\?|--help)
@@ -240,27 +246,33 @@ function main() {
       ;;
         --ramusagetopx|-ramtopx|-memtopx)
         RAM_TOP_X="true"
-        if [[ ${2:-} == ?(-)+([0-9]) ]]; then
+        if [[ ${2:-} =~ ^[0-9]+ ]]; then
           ram_top_x=$2
           shift
         fi
       ;;
       --cpuusage|-cpu)
         CPU="true"
-        if [[ ${2:-} == ?(-)+([0-9]) ]]; then
+        if [[ ${2:-} =~ ^[0-9]+ ]]; then
           measurement_duration=$2
           shift
         fi
       ;;
       --cpuloadtopx|-cputopx)
         CPU_TOP_X="true"
-        if [[ ${2:-} == ?(-)+([0-9]) ]]; then
+        if [[ ${2:-} =~ ^[0-9]+ ]]; then
           cpu_top_x=$2
           shift
         fi
       ;;
       --diskusage|-disk)
         DISK="true"
+      ;;
+      --linewidth|-lw)
+        if [[ ${2:-} =~ ^[0-9]+ ]]; then
+          line_width=$2
+          shift
+        fi
       ;;
       --) # End of all options.
         shift
@@ -284,7 +296,7 @@ function main() {
   fi
 
   if [ "${RAM_TOP_X}" = "true" ]; then
-    getMemoryUsageTopX "$ram_top_x"
+    getMemoryUsageTopX "$ram_top_x" "$line_width"
   fi
 
   if [ "${CPU}" = "true" ]; then
@@ -292,7 +304,7 @@ function main() {
   fi
 
   if [ "${CPU_TOP_X}" = "true" ]; then
-    getCpuLoadTopX "$cpu_top_x"
+    getCpuLoadTopX "$cpu_top_x" "$line_width"
   fi
 
   if [ "${DISK}" = "true" ]; then
