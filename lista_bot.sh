@@ -113,7 +113,8 @@ function loadConfig() {
 function setCommandList() {
   declare -a commandsList
   commandsList=("status=system status"
-              "gcl=get top 5 for CPU load"
+              "gcl=CPU load Top 5"
+              "gru=RAM usage Top 5"
               "uptime=uptime"
               "df=df -h"
               "reboot=reboot server"
