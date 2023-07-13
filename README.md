@@ -5,7 +5,16 @@
 
 Telegram Bot for monitoring a Linux system. 
 
-You can set limits for disk usage, RAM usage and CPU load. The bot will notify you if a limit is breached
+You can set limits for disk usage, RAM usage and CPU load. The bot will notify you if a limit is breached. The project has three main components
+
+lista.sh:
+A shell script, that can also be used as standalone tool, to retrieve status information about the system
+
+lista_watchdog.sh:
+The watchdog script using lista.sh to monitor the alert limit and send alerts via [telegram.bot](https://github.com/beep-projects/telegram.bot)
+
+lista_bot.sh:
+A shell script used to provide you access via Telegram to the configuration of lista_watchdog.sh and queries from lista.sh
 
 ## Content
 
@@ -14,7 +23,7 @@ You can set limits for disk usage, RAM usage and CPU load. The bot will notify y
 - [Installation](#installation)
   - [Setup a Telegram bot](#setup-a-telegram-bot)
   - [Run the script](#run-the-script)
-- [Bot Commands](#bot-commands)
+- [LiStaBot Commands](#listabot-commands)
 
 ## <a name="project-requirements"/>Project Requirements
 
@@ -36,7 +45,7 @@ The used script are developed and tested using a bash shell. Following tools (ex
 
 ## <a name="project-files"/>Project Files
 ```
-    ├── install_lista.sh        # script ot install lista.sh, lista_watchdog.service and lista_bot.service
+    ├── install_lista.sh        # script to install lista.sh, lista_watchdog.service and lista_bot.service
     ├── LICENSE                 # license for using and editing this software
     ├── lista.sh                # script to get some system information
     ├── lista_bot.service       # service to configure lista_watchdog.service via Telegram
@@ -49,13 +58,12 @@ The used script are developed and tested using a bash shell. Following tools (ex
 
 ## <a name="installation"/>Installation
 
-The installation is done using the script ```install_lista.sh```. But before you start, you need a Telegram API Token for your bot. If you only want to use ```lista.sh```, you can skip this step.
+The installation is done using the script ```install_lista.sh```. Before you start the installation process, you need a Telegram API Token for your bot. If you only want to use ```lista.sh```, you can skip this step.
 
 #### <a name="setup-a-telegram-bot"/>Setup a Telegram bot
 
-In order to use the messaging feature, you need a **Telegram** account and app. See the instructions for [telegram.bot](https://github.com/beep-projects/telegram.bot#usage) on how to set this up. After setting up the **Telegram bot** and obtaining your **API Token**, send any message to your bot. 
-**Note:** If you do not continue with the installation within the next 24h you have to send a message to your bot again!  
-**condocam.ai** will use the first received message to set the  administrator. So this might fail if you use a bot that was added to a group and other people are messaging there. You can change the configured administrator later by editing ```/etc/condocam/condocambotbot.conf``` on the device, but you have to figure out the needed IDs on your own.
+In order to use the messaging feature, you need a **Telegram** account and the app on a mobile phone. See the instructions for [telegram.bot](https://github.com/beep-projects/telegram.bot#usage) on how to set this up, or search the web. After setting up the **Telegram bot** and obtaining your **API Token**, send ```/start``` to your bot. This message will be used to identify you for the bot and configure the chat with you.
+The script will use the last received ```/start``` command to set the  administrator. So this might fail if you use a bot that was added to a group and other people are sending the command there too, but why should they? You can change the configured administrator later by editing ```/etc/lista/listabot.conf``` on the device, but you have to figure out the needed IDs on your own.
 
 #### <a name="run-the-script"/>Run the script
 
@@ -74,9 +82,9 @@ Options are :
   -cid|--chatid          the chat id to use for sending messages to
 ```
 
-2. Download and unzip the latest release filed from the project page and open a console in the created directory. 
+1. Download and unzip the latest release file from the project page and open a console in the created directory. 
    
-   You can also run the following commands in a console:
+   For this you can run the following commands in a console:
 
    ```
    version=$(curl -sI https://github.com/beep-projects/LiStaBot/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}')
@@ -85,7 +93,7 @@ Options are :
    cd "LiStaBot-${version#v}"
    ```
    
-2. Run the installation script. Note, during installation of ```--bot``` or ```--watchdog```, the script requires you to send ```/start``` to the created Telegram bot. This message will be used to set up communication with your Telegram account.
+2. Run the installation script. Note, during installation of ```--bot``` or ```--watchdog```, the script requires you to send ```/start``` to the created Telegram bot, if you have not already done that.
 
    ```bash
    chmod 755 install_lista.sh
@@ -99,13 +107,15 @@ Options are :
 
 3. DONE
 
-## <a name="bot-commands" />LiStaBot commands
+## <a name="listabot-commands" />LiStaBot commands
 
 The script `lista_bot.sh` is used for communication between you and your bot. During startup the following commands are registered at @BotFather
 <sup>(If you have the chat with your bot open after sending ```/start``` to your bot, you have to exit and enter the chat to update the commands quick menu in the Telegram app)</sup>
 
 ```bash
 /status - get system status information
+/gcl - get CPU load Top 5
+/gru - get RAM usage Top 5
 /uptime - send the output of uptime
 /df - send the output of df -h"
 /reboot - reboot server
@@ -117,9 +127,21 @@ The script `lista_bot.sh` is used for communication between you and your bot. Du
 In addition to the commands in the quick menu, there are more commands available. Commands with parameters cannot be added to the quick menu, so you have to enter them manually. To make your life easier, the all have a three letter short code
 
 ```bash
-/setdisklimit [VALUE] - set the alert threshold for disk usage to [VALUE] percent. Only integers allowed. Short /sdl
-/setcpulimit [VALUE] - set the alert threshold for cpu usage to [VALUE] percent. Only integers allowed. Short /scl
-/setramlimit [VALUE] - set the alert threshold for ram usage to [VALUE] percent. Only integers allowed. Short /srl
-/setcheckinterval [VALUE] - set the time interval in which the watchdog checks the limits to [VALUE] seconds. Only integers allowed. Short /sci
+/setdisklimit [VALUE] - set the alert threshold for disk usage to [VALUE] percent. Only integers allowed. 
+  Short /sdl
+/setcpulimit [VALUE] - set the alert threshold for cpu usage to [VALUE] percent. Only integers allowed.
+  Short /scl
+/setramlimit [VALUE] - set the alert threshold for ram usage to [VALUE] percent. Only integers allowed.
+  Short /srl
+/setcheckinterval [VALUE] - set the time interval in which the watchdog checks the limits to [VALUE] seconds.
+  Short /sci
+/getcpuloadtopx [VALUE1] [VALUE2]- get the [VALUE1] processes causing the highest CPU load. 
+  If omitted, [VALUE1] defaults to 5. You can pass [VALUE2] to set the line width of the output.
+  [VALUE2] defaults to 120.
+  Short /gcl
+/getramusagetopx [VALUE1] [VALUE2] - get the [VALUE1] processes having the highest RAM usage.
+  If omitted, [VALUE1] defaults to 5. You can pass [VALUE2] to set the line width of the output.
+  [VALUE2] defaults to 120.
+  Short /gru
 ```
 

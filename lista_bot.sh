@@ -196,7 +196,7 @@ function main() {
 /help - shows this info
 TXTEOF
             helpText=$( escapeReservedCharacters "${helpText}" )
-            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "available commands" --text "${helpText}"
+            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "Available Commands" --text "${helpText}"
           ;;
           /setdisklimit|/sdl|/setcpulimit|/scl|/setramlimit|/srl)
             local new_value
@@ -277,7 +277,7 @@ TXTEOF
             telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "shutting down the server now"
             sudo shutdown now
           ;;
-          /restart)
+          /restartservice)
             telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "restarting lista_watchdog\.service"
             sudo systemctl restart lista_bot.service
           ;;
@@ -295,12 +295,14 @@ TXTEOF
           /uptime)
             local text
             text=$( uptime )
-            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "uptime" --text "${text}"
+            text=$( escapeReservedCharacters "${text}" )
+            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "uptime" --text "\`\`\`\n${text}\n\`\`\`"
           ;;
           /df)
             local text
             text=$( df -h )
-            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "disk usage" --text "${text}"
+            text=$( escapeReservedCharacters "${text}" )
+            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "df -h" --text "\`\`\`\n${text}\n\`\`\`"
           ;;
           /start)
             # nothing to do, but it is a telegram bot default command, so I should catch it
