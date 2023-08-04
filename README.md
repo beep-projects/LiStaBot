@@ -1,8 +1,7 @@
 <div align="center">
 <img src="resources/LiStaBot_banner.png" alt="LiStaBot" style="width:100%;"/>
-
 [![GitHub license](https://img.shields.io/github/license/beep-projects/LiStaBot)](https://github.com/beep-projects/LiStaBot/blob/main/LICENSE) [![shellcheck](https://github.com/beep-projects/LiStaBot/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/beep-projects/LiStaBot/actions/workflows/shellcheck.yml) [![GitHub issues](https://img.shields.io/github/issues/beep-projects/LiStaBot)](https://github.com/beep-projects/SystaPi/issues) [![GitHub forks](https://img.shields.io/github/forks/beep-projects/LiStaBot)](https://github.com/beep-projects/LiStaBot/network) [![GitHub stars](https://img.shields.io/github/stars/beep-projects/LiStaBot)](https://github.com/beep-projects/LiStaBot/stargazers) ![GitHub repo size](https://img.shields.io/github/repo-size/beep-projects/LiStaBot) ![visitors](https://visitor-badge.glitch.me/badge?page_id=beep-projects.LiStaBot)
-
+</div>
 # LiStaBot
 
 Telegram Bot for monitoring a Linux system. 
