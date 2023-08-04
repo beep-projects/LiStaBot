@@ -91,15 +91,40 @@ function loadConfig() {
   # without CHAT_ID, the watchdog is useless, so we are trying to fix a missing CHAT_ID by waiting
   # for the first one to send /start to the configured BOT_TOKEN
   local update_json
-  while [[ -z "${CHAT_ID}" ]]; do
+  while [[ -z "${CHAT_ID}" ]] || [[ ! ${CHAT_ID} =~ ^[0-9]+$ ]]; do
     update_json=$( telegram.bot --get_updates --bottoken "${BOT_TOKEN}" )
     CHAT_ID=$( echo "${update_json}" | jq ".result | [.[].message | select(.text==\"/start\")][-1] | .chat.id" )
-    if [[ -z "${CHAT_ID}" ]]; then
+    if [[ -z "${CHAT_ID}" ]] || [[ ! ${CHAT_ID} =~ ^[0-9]+$ ]]; then
       sleep "$CHECK_INTERVAL"
     else 
       sed -i "s/^CHAT_ID=.*/CHAT_ID=$CHAT_ID/" $CONF_FILE
     fi
   done
+}
+
+#######################################
+# Escape characters used by telegram for textformatting.
+# This function should only be used if you do not want to use any formatting
+# in your message.
+# Globals:
+#   None
+# Arguments:
+#   The string that should be escaped
+# Outputs:
+#   $1 with all special characters being escaped by \
+#######################################
+function escapeReservedCharacters() {
+  STRING=$1
+  STRING="${STRING//\(/\\\(}"
+  STRING="${STRING//\)/\\\)}"
+  STRING="${STRING//\[/\\\[}"
+  STRING="${STRING//\]/\\\]}"
+  STRING="${STRING//\_/\\\_}"
+  STRING="${STRING//\*/\\\*}"
+  STRING="${STRING//\~/\\\~}"
+  STRING="${STRING//\`/\\\`}"
+  STRING="${STRING//\|/\\\|}"
+  echo "${STRING}"
 }
 
 function main() {
@@ -134,7 +159,10 @@ function main() {
     done
     if $send_cpu_alert; then
       cpu_alert_text+="\n\`\`\`\n*Top 3 processes*\n"
-      cpu_alert_text+=$( lista.sh -cputopx 3 )
+      local top3_cpu_load
+      top3_cpu_load=$( lista.sh -cputopx 3 )
+      top3_cpu_load=$( escapeReservedCharacters "${top3_cpu_load}" )
+      cpu_alert_text+="\`\`\`\n${top3_cpu_load}\n\`\`\`"
       telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "High CPU load detected!" --text "${cpu_alert_text}"
     fi 
     ####################
@@ -143,7 +171,8 @@ function main() {
     local disk
     disk=$( lista.sh --diskusage | awk -v disk_limit="${DISK_LIMIT}" '{ if( $3 > disk_limit ) print $1 " mounted as " $2 ": " $3 "%"}' )
     if [[ -n "${disk}" ]]; then
-      telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "Disk filled over the limit!" --text "${disk}"
+      disk=$( escapeReservedCharacters "${disk}" )
+      telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --warning --title "Disk filled over the limit!" --text "\`\`\`\n${disk}\n\`\`\`"
     fi
     ###################
     # all checks done #

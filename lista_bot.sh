@@ -39,6 +39,17 @@ CHECK_INTERVAL=""
 TIMEOUT=60 # long polling intervall = 10 minutes, but get's currently ignored by the Telegram server
 ATTACK_LIMIT=3 # how many unauthorized requests are allowed before the bot shuts down itself
 
+#######################################
+# Escape characters used by telegram for textformatting.
+# This function should only be used if you do not want to use any formatting
+# in your message.
+# Globals:
+#   None
+# Arguments:
+#   The string that should be escaped
+# Outputs:
+#   $1 with all special characters being escaped by \
+#######################################
 function escapeReservedCharacters() {
   STRING=$1
   STRING="${STRING//\(/\\\(}"
@@ -154,12 +165,12 @@ function main() {
         sleep 1
         continue
       fi
+      sed -i "s/^LAST_UPDATE_ID=.*/LAST_UPDATE_ID=$lastUpdateID/" "${CONF_FILE}"
       local adminID
       adminID=$( echo "${updateJSON}" | jq '.result | .[0].message.from.id' )
       # no matter if this request was legitimate, the nextUpdateId has to be increased, for not receiving this update again
       local nextUpdateId
       nextUpdateId=$((lastUpdateID+1))
-      sed -i "s/^LAST_UPDATE_ID=.*/LAST_UPDATE_ID=$lastUpdateID/" "${CONF_FILE}"
       if [[ "${adminID}" == "${ADMIN_ID}" ]]; then
         # this is an authorized request. Process it.
         local message
@@ -189,6 +200,8 @@ function main() {
   Short /gru
 /status - get system status information
 /uptime - send the output of uptime
+/gcl - get CPU load Top 5
+/gru - get RAM usage Top 5
 /df - send the output of df -h"
 /reboot - reboot server
 /shutdown - shutdown server
@@ -315,6 +328,9 @@ TXTEOF
       else
         # unauthorized request
         attackCount=$((attackCount+1))
+        local json
+        json=$( escapeReservedCharacters "${updateJSON}" )
+        telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --error --title "ALARM" --text "Unauthorized request\.\n\`\`\`${json}\n\`\`\`"
         if [[ $attackCount -ge $ATTACK_LIMIT ]]; then
           telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --error --title "ALARM" --text "I am receiving unauthorized requests\. I am shutting myself down\."
           sleep 5

@@ -1,3 +1,5 @@
+<div align="center">
+<img src="resources/LiStaBot_banner.png" alt="LiStaBot" style="width:100%;"/>
 
 [![GitHub license](https://img.shields.io/github/license/beep-projects/LiStaBot)](https://github.com/beep-projects/LiStaBot/blob/main/LICENSE) [![shellcheck](https://github.com/beep-projects/LiStaBot/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/beep-projects/LiStaBot/actions/workflows/shellcheck.yml) [![GitHub issues](https://img.shields.io/github/issues/beep-projects/LiStaBot)](https://github.com/beep-projects/SystaPi/issues) [![GitHub forks](https://img.shields.io/github/forks/beep-projects/LiStaBot)](https://github.com/beep-projects/LiStaBot/network) [![GitHub stars](https://img.shields.io/github/stars/beep-projects/LiStaBot)](https://github.com/beep-projects/LiStaBot/stargazers) ![GitHub repo size](https://img.shields.io/github/repo-size/beep-projects/LiStaBot) ![visitors](https://visitor-badge.glitch.me/badge?page_id=beep-projects.LiStaBot)
 
@@ -7,14 +9,14 @@ Telegram Bot for monitoring a Linux system.
 
 You can set limits for disk usage, RAM usage and CPU load. The bot will notify you if a limit is breached. The project has three main components
 
-lista.sh:
+```lista.sh```:
 A shell script, that can also be used as standalone tool, to retrieve status information about the system
 
-lista_watchdog.sh:
-The watchdog script using lista.sh to monitor the alert limit and send alerts via [telegram.bot](https://github.com/beep-projects/telegram.bot)
+```lista_watchdog.sh```:
+The watchdog script using ```lista.sh``` to monitor the alert limit and send alerts via [telegram.bot](https://github.com/beep-projects/telegram.bot)
 
-lista_bot.sh:
-A shell script used to provide you access via Telegram to the configuration of lista_watchdog.sh and queries from lista.sh
+```lista_bot.sh```:
+A shell script used to provide you access via Telegram to the configuration of ```lista_watchdog.sh``` and queries from ```lista.sh```
 
 ## Content
 
@@ -27,7 +29,7 @@ A shell script used to provide you access via Telegram to the configuration of l
 
 ## <a name="project-requirements"/>Project Requirements
 
-The scripts are developed and tested on bash shell. Following tools (excluding Linux build ins) are used inside the scripts, most of these should be part of any common Linux distributions:
+The scripts are developed and tested on bash shell. Following tools (excluding Linux build ins) are used inside the scripts, most of these should be part of any common Linux distribution:
 
 - ```awk``` (POSIX)
 - ```cut``` (GNU core utils)
@@ -45,6 +47,7 @@ The scripts are developed and tested on bash shell. Following tools (excluding L
 
 ## <a name="project-files"/>Project Files
 ```
+    ├── resources               # folder to store files used for README.md
     ├── install_lista.sh        # script to install lista.sh, lista_watchdog.service and lista_bot.service
     ├── LICENSE                 # license for using and editing this software
     ├── lista.sh                # script to get some system information
@@ -62,7 +65,9 @@ The installation is done using the script ```install_lista.sh```. Before you sta
 
 #### <a name="setup-a-telegram-bot"/>Setup a Telegram bot
 
-In order to use the messaging feature, you need a **Telegram** account and the app on a mobile phone. See the instructions for [telegram.bot](https://github.com/beep-projects/telegram.bot#usage) on how to set this up, or search the web. After setting up the **Telegram bot** and obtaining your **API Token**, send ```/start``` to your bot. This message will be used to identify you for the bot and configure the chat with you.
+In order to use the messaging feature, you need a **Telegram** account and the app on a mobile phone. See the instructions for [telegram.bot](https://github.com/beep-projects/telegram.bot#usage) on how to set this up, or search the web. 
+An important note is that Telegram bots cannot be made fully private. Everyone can search for it and send messages to it. Therefore **LiStaBot** is designed to communicate only with one Telegram account and ignore messages from everyone else.
+After setting up the **Telegram bot** and obtaining your **API Token**, send ```/start``` to your bot. This message will be used to identify you for the bot and configure the chat with your Telegram account.
 The script will use the last received ```/start``` command to set the  administrator. So this might fail if you use a bot that was added to a group and other people are sending the command there too, but why should they? You can change the configured administrator later by editing ```/etc/lista/listabot.conf``` on the device, but you have to figure out the needed IDs on your own.
 
 #### <a name="run-the-script"/>Run the script
@@ -89,7 +94,7 @@ Options are :
    ```
    version=$(curl -sI https://github.com/beep-projects/LiStaBot/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}')
    wget "https://github.com/beep-projects/LiStaBot/archive/refs/tags/${version}.zip"
-   unzip ""${version}.zip"
+   unzip "${version}.zip"
    cd "LiStaBot-${version#v}"
    ```
    
@@ -110,7 +115,7 @@ Options are :
 ## <a name="listabot-commands" />LiStaBot commands
 
 The script `lista_bot.sh` is used for communication between you and your bot. During startup the following commands are registered at @BotFather
-<sup>(If you have the chat with your bot open after sending ```/start``` to your bot, you have to exit and enter the chat to update the commands quick menu in the Telegram app)</sup>
+<sup>(If you have the chat with your bot open after sending ```/start``` to your bot, you have to exit and reenter the chat to update the commands quick menu in the Telegram app)</sup>
 
 ```bash
 /status - get system status information
