@@ -143,7 +143,7 @@ function main() {
     ###################
     # Check CPU usage #
     ###################
-    mapfile -t cpu < <( lista.sh --cpuusage 1 )
+    mapfile -t cpu < <( lista.sh --cpuload 1 )
     local send_cpu_alert
     send_cpu_alert=false
     local cpu_alert_text

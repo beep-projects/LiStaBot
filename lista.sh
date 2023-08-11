@@ -41,9 +41,10 @@ cat <<END
   lista.sh: script to get status information about a Linux system
   Options are :
     --help|-h|-?                        display this help and exit
+    --status                            displays a collection of various system status information
     --ramusage|-ram|-mem                get the current RAM usage
     --ramusagetopx|-ramtopx|-memtopx    get the top X processes for CPU usage. Accepts parameter X, which defaults to 5
-    --cpuusage|-cpu                     get the CPU usage. Accepts parameter measurement duration in seconds, which defaults to 5s if unset
+    --cpuload|-cpu                      get the CPU load. Accepts parameter measurement duration in seconds, which defaults to 5s if unset
                                         Prints average load over all CPU cores. The first value is the overall load,
                                         each following entry is for another CPU core, CPU0, CPU1, CPU2, ...
     --cpuloadtopx|-cputopx              get the top X processes for CPU usage. Accepts parameter X, which defaults to 5
@@ -108,11 +109,15 @@ function getSystemStatus() {
                                      "Temperature:"             "${temperature}" \
                                      "Processes:"               "${num_of_processes} (${num_of_zombies} Zombies)" \
                                      "Users logged in:"         "${loggedin_users}" \
+  local external_ip
+  external_ip=$( curl --silent ifconfig.me )
+  printf -v external_ip "%-25s %s" "External IP address:" "${external_ip}"
   local ipv4_info
   ipv4_info=$( ip -o addr show scope global | awk '$3 == "inet" {split($4, addr, "/"); printf "%-25s %s\n", "IPv4 address for "$2":", addr[1]}' )
   local ipv6_info
   ipv6_info=$( ip -o addr show scope global | awk '$3 == "inet6" {split($4, addr, "/"); printf "%-25s %s\n", "IPv6 address for "$2":", addr[1]}' )
-  printf "%s%s\n%s\n" "${system_info}" \
+  printf "%s%s\n%s\n%s" "${system_info}" \
+                      "${external_ip}" \
                       "${ipv4_info}" \
                       "${ipv6_info}"
 
@@ -251,7 +256,7 @@ function main() {
           shift
         fi
       ;;
-      --cpuusage|-cpu)
+      --cpuload|-cpu)
         CPU="true"
         if [[ ${2:-} =~ ^[0-9]+$ ]]; then
           measurement_duration=$2
