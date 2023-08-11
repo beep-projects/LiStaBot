@@ -108,7 +108,7 @@ function getSystemStatus() {
                                      "Swap usage:"              "${swap_usage}" \
                                      "Temperature:"             "${temperature}" \
                                      "Processes:"               "${num_of_processes} (${num_of_zombies} Zombies)" \
-                                     "Users logged in:"         "${loggedin_users}" \
+                                     "Users logged in:"         "${loggedin_users}"
   local external_ip
   external_ip=$( curl --silent ifconfig.me )
   printf -v external_ip "%-25s %s" "External IP address:" "${external_ip}"
