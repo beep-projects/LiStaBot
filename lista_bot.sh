@@ -131,6 +131,7 @@ function setCommandList() {
               "reboot=reboot server"
               "shutdown=shutdown server"
               "restartservice=restart lista_bot.service"
+              "gconf=get config file"
               "help=show commands list"
              )
   telegram.bot -bt "${BOT_TOKEN}" --set_commands "${commandsList[@]}"
@@ -206,6 +207,8 @@ function main() {
 /reboot - reboot server
 /shutdown - shutdown server
 /restartservice - restart lista_bot.service
+/getconfig - get the content of ${CONF_FILE}
+  Short /gconf
 /help - shows this info
 TXTEOF
             helpText=$( escapeReservedCharacters "${helpText}" )
@@ -285,6 +288,11 @@ TXTEOF
           /reboot)
             telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "rebooting the server now"
             sudo reboot -f
+          ;;
+          /getconfig|/gconf)
+            config=$( <${CONF_FILE} )
+            config=$( escapeReservedCharacters "${config}" )
+            telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "${CONF_FILE}" --text "${config}"
           ;;
           /shutdown)
             telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "shutting down the server now"
