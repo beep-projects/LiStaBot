@@ -290,7 +290,8 @@ TXTEOF
             sudo reboot -f
           ;;
           /getconfig|/gconf)
-            config=$( <${CONF_FILE} )
+            #config=$( <${CONF_FILE} )
+            config=$( grep -v "^#" ${CONF_FILE} )
             config=$( escapeReservedCharacters "${config}" )
             telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --title "${CONF_FILE}" --text "${config}"
           ;;
