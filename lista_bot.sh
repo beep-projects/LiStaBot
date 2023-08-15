@@ -131,7 +131,7 @@ function setCommandList() {
               "reboot=reboot server"
               "shutdown=shutdown server"
               "restartservice=restart lista_bot.service"
-              "gconf=get config file"
+              "gconf=get the config file"
               "help=show commands list"
              )
   telegram.bot -bt "${BOT_TOKEN}" --set_commands "${commandsList[@]}"

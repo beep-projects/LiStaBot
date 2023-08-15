@@ -129,6 +129,7 @@ The script `lista_bot.sh` is used for communication between you and your bot. Du
 /reboot - reboot server
 /shutdown - shutdown server
 /restartservice - restart lista_bot.service
+/gconf - get the config file
 /help - shows this info
 ```
 
