@@ -88,6 +88,7 @@ Main parameters are :
 Options are :
   -h/-?/--help           display this help and exit
   -cid|--chatid          the chat id to use for sending messages to
+  --no-service           install only the selected scripts, but no services
 ```
 
 1. Download and unzip the latest release file from the project page and open a console in the created directory. 

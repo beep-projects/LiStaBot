@@ -51,7 +51,7 @@ cat <<END
   Options are :
     -h/-?/--help           display this help and exit
     -cid|--chatid          the chat id to use for sending messages to
-    --no-service           install only the scripts, but no services
+    --no-service           install only the selected scripts, but no services
 END
 }
 
