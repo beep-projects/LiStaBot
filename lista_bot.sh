@@ -303,7 +303,7 @@ TXTEOF
             telegram.bot -bt "${BOT_TOKEN}" -cid "${CHAT_ID}" -q --info --text "restarting lista_watchdog\.service"
             sudo systemctl restart lista_bot.service
           ;;
-          /status)
+          /status|/systemstatus)
             #local systemTemps
             #systemTemps=$( paste <(cat /sys/class/thermal/thermal_zone*/type) <(cat /sys/class/thermal/thermal_zone*/temp) | awk '{printf "%-16s %02.1f°C\n", $1, $2/1000}' )
             #systemTemps=$( escapeReservedCharacters "${systemTemps}" )

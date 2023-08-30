@@ -26,7 +26,7 @@ set -o nounset    # Exposes unset variables
 
 # Initialize all the option variables.
 # This ensures we are not contaminated by variables from the environment.
-CONFIG_DIR="/etc/listabot/"
+CONFIG_DIR="/etc/listabot"
 CONF_FILE="listabot.conf"
 
 
@@ -41,7 +41,7 @@ CONF_FILE="listabot.conf"
 #######################################
 function help() {
 cat <<END
-  install.sh: script to install scripts from the LiStaBot project
+  install_lista.sh: script to install scripts from the LiStaBot project
   Main parameters are :
     --lista                install only lista.sh
     --watchdog             install lista.sh and the watchdog
@@ -51,6 +51,7 @@ cat <<END
   Options are :
     -h/-?/--help           display this help and exit
     -cid|--chatid          the chat id to use for sending messages to
+    --no-service           install only the scripts, but no services
 END
 }
 
@@ -124,9 +125,9 @@ function getChatId() {
       sleep 10
     else #TODO check the globals for these files
       printf "CHAT_ID: %s, ADMIN_ID: %s, LAST_UPDATE_ID: %s\n" "$chat_id" "$admin_id" "$last_update_id"
-      sed -i "s/^CHAT_ID=.*/CHAT_ID=$chat_id/" $CONF_FILE
-      sed -i "s/^ADMIN_ID=.*/ADMIN_ID=$admin_id/" $CONF_FILE
-      sed -i "s/^LAST_UPDATE_ID=.*/LAST_UPDATE_ID=$last_update_id/" $CONF_FILE
+      sed -i "s/^CHAT_ID=.*/CHAT_ID=$chat_id/" "${workingdir}/$CONF_FILE"
+      sed -i "s/^ADMIN_ID=.*/ADMIN_ID=$admin_id/" "${workingdir}/$CONF_FILE"
+      sed -i "s/^LAST_UPDATE_ID=.*/LAST_UPDATE_ID=$last_update_id/" "${workingdir}/$CONF_FILE"
     fi
   done
 }
@@ -139,12 +140,19 @@ function main() {
   # if no argument, display help
   if [ $# -eq 0 ]; then
     help
+    exit 1
   fi
+
+  local fullpath
+  fullpath=$( realpath "$0" )
+  local workingdir
+  workingdir=$( dirname "$fullpath" )
 
   # loop to retrieve arguments
   local bot=false
   local watchdog=false
   local lista=false
+  local services=true
   local bot_token=""
   local client_id=""
   
@@ -184,6 +192,9 @@ function main() {
       --lista)
         lista=true
       ;;
+      --no-service)
+        services=false
+      ;;
       --) # End of all options.
         shift
         break
@@ -202,15 +213,15 @@ function main() {
   fi
 
   if [[ -n "${bot_token}" ]]; then
-    sed -i "s/^BOT_TOKEN=.*/BOT_TOKEN=${bot_token}/" "${CONF_FILE}"
+    sed -i "s/^BOT_TOKEN=.*/BOT_TOKEN=${bot_token}/" "${workingdir}/${CONF_FILE}"
   fi
 
   if [[ -n "${client_id}" ]]; then
-    sed -i "s/^CHAT_ID=.*/CHAT_ID=${client_id}/" "${CONF_FILE}"
+    sed -i "s/^CHAT_ID=.*/CHAT_ID=${client_id}/" "${workingdir}/${CONF_FILE}"
   fi
 
   if [[ "${lista}" = true ]]; then
-    sudo cp lista.sh /usr/local/bin
+    sudo cp "${workingdir}/lista.sh" /usr/local/bin
   fi
 
   if [[ "${watchdog}" = true ]]; then
@@ -220,45 +231,49 @@ function main() {
         wget https://github.com/beep-projects/telegram.bot/releases/latest/download/telegram.bot
         chmod 755 telegram.bot
         sudo ./telegram.bot --install
+        rm ./telegram.bot
     fi
     # validate BOT_TOKEN
-    bot_token=$( grep -w "BOT_TOKEN" "${CONF_FILE}" | cut -d"=" -f2 )
+    bot_token=$( grep -w "BOT_TOKEN" "${workingdir}/${CONF_FILE}" | cut -d"=" -f2 )
     if [[ ! ${bot_token} =~ ^[0-9]{8,10}:[0-9a-zA-Z_-]{35}$ ]]; then
       # without a valid BOT_TOKEN, the lista_watchdog.sh cannot send messages and is useless
-      # print this information and exit the install script
-      error "\"${bot_token}\" does not seem to be a valid bot token, please correct your entry in ${CONF_FILE} and try again"
+      error "\"${bot_token}\" does not seem to be a valid bot token, please correct your entry in ${workingdir}/${CONF_FILE} and try again"
     fi
     # validate CHAT_ID
-    chatid_id=$( grep -w "CHAT_ID" "${CONF_FILE}" | cut -d"=" -f2 )
+    chatid_id=$( grep -w "CHAT_ID" "${workingdir}/${CONF_FILE}" | cut -d"=" -f2 )
     if [[ ! ${chatid_id} =~ ^(-)?[0-9]+$ ]]; then
       echo "\"${chatid_id}\" does not seem to be a valid chat id, please send /start to your bot now. The install script will then get the chat id from your message"
       getChatId "${bot_token}"
     fi
-    sed -i "s/^CHAT_ID=.*/CHAT_ID=${chatid_id}/" "${CONF_FILE}"
+    sed -i "s/^CHAT_ID=.*/CHAT_ID=${chatid_id}/" "${workingdir}/${CONF_FILE}"
     # copy the files to their apropriate locations and enable the lista_watchdog.service
-    sudo sudo mkdir -p "${CONFIG_DIR}" && sudo cp "${CONF_FILE}" "${CONFIG_DIR}"
-    sudo cp lista_watchdog.sh /usr/local/bin/
-    sudo cp lista_watchdog.service /etc/systemd/system/
-    sudo systemctl daemon-reload
-    sudo systemctl enable lista_watchdog.service
-    sudo systemctl start lista_watchdog.service
+    sudo mkdir -p "${CONFIG_DIR}" && sudo cp "${workingdir}/${CONF_FILE}" "${CONFIG_DIR}"
+    sudo cp "${workingdir}/lista_watchdog.sh" /usr/local/bin/
+    if [[ "${services}" = true ]]; then
+      sudo cp "${workingdir}/lista_watchdog.service" /etc/systemd/system/
+      sudo systemctl daemon-reload
+      sudo systemctl enable lista_watchdog.service
+      sudo systemctl start lista_watchdog.service
+    fi
   fi
 
   if [[ "${bot}" = true ]]; then
-    admin_id=$( grep -w "ADMIN_ID" "${CONF_FILE}" | cut -d"=" -f2 )
+    admin_id=$( grep -w "ADMIN_ID" "${workingdir}/${CONF_FILE}" | cut -d"=" -f2 )
     if [[ -z "${admin_id}" ]]; then
       echo "The ADMIN_ID is not set, please send /start to your bot now. The install script will then get the ADMIN_ID from your message"
       getChatId "${bot_token}"
     fi
     # copy the files to their apropriate locations and enable the lista_watchdog.service
-    if [[ ! -f "${CONFIG_DIR}${CONF_FILE}" ]]; then
-      sudo mkdir -p "${CONFIG_DIR}" && sudo cp "${CONF_FILE}" "${CONFIG_DIR}"
+    if [[ ! -f "${CONFIG_DIR}/${CONF_FILE}" ]]; then
+      sudo mkdir -p "${CONFIG_DIR}" && sudo cp "${workingdir}/${CONF_FILE}" "${CONFIG_DIR}"
     fi
-    sudo cp lista_bot.sh /usr/local/bin/
-    sudo cp lista_bot.service /etc/systemd/system/
-    sudo systemctl daemon-reload
-    sudo systemctl enable lista_bot.service
-    sudo systemctl start lista_bot.service
+    sudo cp "${workingdir}/lista_bot.sh" /usr/local/bin/
+    if [[ "${services}" = true ]]; then
+      sudo cp "${workingdir}/lista_bot.service" /etc/systemd/system/
+      sudo systemctl daemon-reload
+      sudo systemctl enable lista_bot.service
+      sudo systemctl start lista_bot.service
+    fi
   fi
 }
 
