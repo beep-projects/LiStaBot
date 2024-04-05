@@ -208,7 +208,7 @@ function main() {
     shift
   done
 
-  if [[ -z "${lista}" ]] && [[ -z "${watchdog}" ]] && [[ -z "${bot}" ]]; then
+  if [[ -z "${lista}" && -z "${watchdog}" && -z "${bot}" ]]; then
     error "You did not give one of the mandatory option --list, --watchdog or --bot. Nothing to install. Exit"
   fi
 

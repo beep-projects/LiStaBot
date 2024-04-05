@@ -69,6 +69,92 @@ function error() {
 }
 
 #######################################
+# Writes user specific config files for the top command.
+# This is needed, because top does not support a usable configuration via command line parameters and lista.sh
+# does not want to interfere with any other existing configuration for top
+# Globals:
+#   None
+# Arguments:
+#   None
+# Outputs:
+#   Writes lista_mem_toprc and lista_cpu_toprc into the user specific configuration folder ~/.config/procps
+#######################################
+function write_toprcs() {
+  if ! [[ -f ~/.config/procps/lista_mem_toprc ]]; then
+    mkdir -p ~/.config/procps
+    cat << EOF > ~/.config/procps/lista_mem_toprc
+top's Config File (Linux processes with windows)
+Id:k, Mode_altscr=0, Mode_irixps=1, Delay_time=3.0, Curwin=0
+Def	fieldscur= 117   75   81  102  104  118  122  128  136  110  114  139   76   78   82   84   86   88   90   92 
+		    94   96   98  100  106  108  112  120  124  126  130  132  134  140  142  144  146  148  150  152 
+		   154  156  158  160  162  164  166  168  170  172  174  176  178  180  182  184  186  188  190  192 
+		   194  196  198  200  202  204  206  208  210  212  214  216  218  220  222  224  226  228  230  232 
+		   234  236  238  240  242  244  246  248  250  252  254  256  258  260  262  264  266  268  270  272 
+	winflags=193972, sortindx=18, maxtasks=0, graph_cpus=0, graph_mems=0, double_up=0, combine_cpus=0, core_types=0
+	summclr=1, msgsclr=1, headclr=3, taskclr=1
+Job	fieldscur=  75   77  115  111  117   80  103  105  137  119  123  128  120   79  139   82   84   86   88   90 
+		    92   94   96   98  100  106  108  112  124  126  130  132  134  140  142  144  146  148  150  152 
+		   154  156  158  160  162  164  166  168  170  172  174  176  178  180  182  184  186  188  190  192 
+		   194  196  198  200  202  204  206  208  210  212  214  216  218  220  222  224  226  228  230  232 
+		   234  236  238  240  242  244  246  248  250  252  254  256  258  260  262  264  266  268  270  272 
+	winflags=193844, sortindx=0, maxtasks=0, graph_cpus=0, graph_mems=0, double_up=0, combine_cpus=0, core_types=0
+	summclr=6, msgsclr=6, headclr=7, taskclr=6
+Mem	fieldscur=  75  117  119  120  123  125  127  129  131  154  132  156  135  136  102  104  111  139   76   78 
+		    80   82   84   86   88   90   92   94   96   98  100  106  108  112  114  140  142  144  146  148 
+		   150  152  158  160  162  164  166  168  170  172  174  176  178  180  182  184  186  188  190  192 
+		   194  196  198  200  202  204  206  208  210  212  214  216  218  220  222  224  226  228  230  232 
+		   234  236  238  240  242  244  246  248  250  252  254  256  258  260  262  264  266  268  270  272 
+	winflags=193844, sortindx=21, maxtasks=0, graph_cpus=0, graph_mems=0, double_up=0, combine_cpus=0, core_types=0
+	summclr=5, msgsclr=5, headclr=4, taskclr=5
+Usr	fieldscur=  75   77   79   81   85   97  115  111  117  137  139   82   86   88   90   92   94   98  100  102 
+		   104  106  108  112  118  120  122  124  126  128  130  132  134  140  142  144  146  148  150  152 
+		   154  156  158  160  162  164  166  168  170  172  174  176  178  180  182  184  186  188  190  192 
+		   194  196  198  200  202  204  206  208  210  212  214  216  218  220  222  224  226  228  230  232 
+		   234  236  238  240  242  244  246  248  250  252  254  256  258  260  262  264  266  268  270  272 
+	winflags=193844, sortindx=3, maxtasks=0, graph_cpus=0, graph_mems=0, double_up=0, combine_cpus=0, core_types=0
+	summclr=3, msgsclr=3, headclr=2, taskclr=3
+Fixed_widest=0, Summ_mscale=1, Task_mscale=0, Zero_suppress=0, Tics_scaled=0
+EOF
+  fi
+  if ! [[ -f ~/.config/procps/lista_cpu_toprc ]]; then
+    mkdir -p ~/.config/procps
+    cat << EOF > ~/.config/procps/lista_cpu_toprc
+top's Config File (Linux processes with windows)
+Id:k, Mode_altscr=0, Mode_irixps=1, Delay_time=3.0, Curwin=0
+Def	fieldscur= 111   75   81  102  104  118  122  128  136  116  114  139   76   78   82   84   86   88   90   92 
+		    94   96   98  100  106  108  112  120  124  126  130  132  134  140  142  144  146  148  150  152 
+		   154  156  158  160  162  164  166  168  170  172  174  176  178  180  182  184  186  188  190  192 
+		   194  196  198  200  202  204  206  208  210  212  214  216  218  220  222  224  226  228  230  232 
+		   234  236  238  240  242  244  246  248  250  252  254  256  258  260  262  264  266  268  270  272 
+	winflags=193972, sortindx=18, maxtasks=0, graph_cpus=0, graph_mems=0, double_up=0, combine_cpus=0, core_types=0
+	summclr=1, msgsclr=1, headclr=3, taskclr=1
+Job	fieldscur=  75   77  115  111  117   80  103  105  137  119  123  128  120   79  139   82   84   86   88   90 
+		    92   94   96   98  100  106  108  112  124  126  130  132  134  140  142  144  146  148  150  152 
+		   154  156  158  160  162  164  166  168  170  172  174  176  178  180  182  184  186  188  190  192 
+		   194  196  198  200  202  204  206  208  210  212  214  216  218  220  222  224  226  228  230  232 
+		   234  236  238  240  242  244  246  248  250  252  254  256  258  260  262  264  266  268  270  272 
+	winflags=193844, sortindx=0, maxtasks=0, graph_cpus=0, graph_mems=0, double_up=0, combine_cpus=0, core_types=0
+	summclr=6, msgsclr=6, headclr=7, taskclr=6
+Mem	fieldscur=  75  117  119  120  123  125  127  129  131  154  132  156  135  136  102  104  111  139   76   78 
+		    80   82   84   86   88   90   92   94   96   98  100  106  108  112  114  140  142  144  146  148 
+		   150  152  158  160  162  164  166  168  170  172  174  176  178  180  182  184  186  188  190  192 
+		   194  196  198  200  202  204  206  208  210  212  214  216  218  220  222  224  226  228  230  232 
+		   234  236  238  240  242  244  246  248  250  252  254  256  258  260  262  264  266  268  270  272 
+	winflags=193844, sortindx=21, maxtasks=0, graph_cpus=0, graph_mems=0, double_up=0, combine_cpus=0, core_types=0
+	summclr=5, msgsclr=5, headclr=4, taskclr=5
+Usr	fieldscur=  75   77   79   81   85   97  115  111  117  137  139   82   86   88   90   92   94   98  100  102 
+		   104  106  108  112  118  120  122  124  126  128  130  132  134  140  142  144  146  148  150  152 
+		   154  156  158  160  162  164  166  168  170  172  174  176  178  180  182  184  186  188  190  192 
+		   194  196  198  200  202  204  206  208  210  212  214  216  218  220  222  224  226  228  230  232 
+		   234  236  238  240  242  244  246  248  250  252  254  256  258  260  262  264  266  268  270  272 
+	winflags=193844, sortindx=3, maxtasks=0, graph_cpus=0, graph_mems=0, double_up=0, combine_cpus=0, core_types=0
+	summclr=3, msgsclr=3, headclr=2, taskclr=3
+Fixed_widest=0, Summ_mscale=1, Task_mscale=0, Zero_suppress=0, Tics_scaled=0
+EOF
+  fi
+}
+
+#######################################
 # Get some information about the system.
 # Inspired by Ubuntu's landscape-sysinfo
 # Globals:
@@ -149,7 +235,10 @@ function getMemoryUsageTopX() {
   num_entries=$(( ${1:-5}+1 ))
   line_width=${2:-120}
   # shellcheck disable=SC2009 #disabled, because I see no benefit in using pgrep for this task
-  ps -eo pmem,pid,user,command --sort=-%mem | grep -v "ps -eo pmem,pid,user,command --sort=-c" | head -n${num_entries} | cut -c -"${line_width}"
+  # ps has only statistics for full process lifetime
+  #ps -eo pmem,pid,user,command --sort=-%mem | grep -v "ps -eo pmem,pid,user,command --sort=-c" | head -n${num_entries} | cut -c -"${line_width}"
+  write_toprcs
+  exec -a lista_mem_top top -b -n 2 -d 1 -o +%MEM -w 512 | awk -v RS='(\r*\n){2,}' 'END{printf "%s\n",$0}' | head -n ${num_entries} | cut -c -"${line_width}"
   #ps ahux --sort=-%mem | awk -v x="${1:-5}" '/ps ahux --sort=-%mem/ {x=x+1;next} NR<=x{printf"%s %6d %s\n",$4,$2,$11}'
 }
 
@@ -171,7 +260,7 @@ function getCpuUsage() {
   if [ "${duration}" -le 0 ]; then
     mpstats_output=$( mpstat -P ALL 0 | tail -n $((cpu_cores + 1)) )
   else
-    mpstats_output=$( mpstat -P ALL 1 "${duration}" | tail -n $((cpu_cores + 1)) )
+    mpstats_output=$( mpstat -P ALL "${duration}" 1 | tail -n $((cpu_cores + 1)) )
   fi
   local mpstat_array=()
   read -r -a mpstat_array -d '' <<< "$mpstats_output"
@@ -198,7 +287,11 @@ function getCpuLoadTopX() {
   num_entries=$(( ${1:-5}+1 ))
   line_width=${2:-120}
   # shellcheck disable=SC2009 #disabled, because I see no benefit in using pgrep for this task
-  ps -eo pcpu,pid,user,command --sort=-c | grep -v "ps -eo pcpu,pid,user,command --sort=-c" | head -n${num_entries} | cut -c -"${line_width}"
+  # ps has only statistics for full process lifetime
+  # ps -eo pcpu,pid,user,command --sort=-c | grep -v "ps -eo pcpu,pid,user,command --sort=-c" | head -n${num_entries} | cut -c -"${line_width}"
+  #top -b -n 2 -d 10 -o +%CPU -w 512 | awk -v RS='(\r*\n){2,}' 'END{printf "%s\n",$0}' | head -n 6 | tail -n 5
+  write_toprcs
+  exec -a lista_cpu_top top -b -n 2 -d 1 -o +%CPU -w 512 | awk -v RS='(\r*\n){2,}' 'END{printf "%s\n",$0}' | head -n ${num_entries} | cut -c -"${line_width}"
   #ps ahux --sort=-c | awk -v x="${1:-5}" '/ps ahux --sort=-c/ {x=x+1;next} NR<=x{printf"%s %6d %s\n",$3,$2,$11}'
 }
 
