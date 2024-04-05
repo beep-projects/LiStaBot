@@ -238,7 +238,7 @@ function getMemoryUsageTopX() {
   # ps has only statistics for full process lifetime
   #ps -eo pmem,pid,user,command --sort=-%mem | grep -v "ps -eo pmem,pid,user,command --sort=-c" | head -n${num_entries} | cut -c -"${line_width}"
   write_toprcs
-  exec -a lista_mem_top top -b -n 2 -d 1 -o +%MEM -w 512 | awk -v RS='(\r*\n){2,}' 'END{printf "%s\n",$0}' | head -n ${num_entries} | cut -c -"${line_width}"
+  exec -a lista_mem_top top -b -n 2 -d 1 -o +%MEM -w 512 | awk -v RS='(\n\n)' 'END{printf "%s\n",$0}' | head -n ${num_entries} | cut -c -"${line_width}"
   #ps ahux --sort=-%mem | awk -v x="${1:-5}" '/ps ahux --sort=-%mem/ {x=x+1;next} NR<=x{printf"%s %6d %s\n",$4,$2,$11}'
 }
 
@@ -291,7 +291,7 @@ function getCpuLoadTopX() {
   # ps -eo pcpu,pid,user,command --sort=-c | grep -v "ps -eo pcpu,pid,user,command --sort=-c" | head -n${num_entries} | cut -c -"${line_width}"
   #top -b -n 2 -d 10 -o +%CPU -w 512 | awk -v RS='(\r*\n){2,}' 'END{printf "%s\n",$0}' | head -n 6 | tail -n 5
   write_toprcs
-  exec -a lista_cpu_top top -b -n 2 -d 1 -o +%CPU -w 512 | awk -v RS='(\r*\n){2,}' 'END{printf "%s\n",$0}' | head -n ${num_entries} | cut -c -"${line_width}"
+  exec -a lista_cpu_top top -b -n 2 -d 1 -o +%CPU -w 512 | awk -v RS='(\n\n)' 'END{printf "%s\n",$0}' | head -n ${num_entries} | cut -c -"${line_width}"
   #ps ahux --sort=-c | awk -v x="${1:-5}" '/ps ahux --sort=-c/ {x=x+1;next} NR<=x{printf"%s %6d %s\n",$3,$2,$11}'
 }
 
