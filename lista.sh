@@ -269,8 +269,8 @@ function getCpuUsage() {
   # mpstats values have the following structure
   # time   CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
   # in the following we want to access the %idle value at index 11, 23, 35, ...
-  for (( i=11; i<len; i=i+12 )); do #calculate the load from the idle column
-    awk -v idle="${mpstat_array[$i]//,/\.}}" 'BEGIN{print 100.0 - idle }'
+  for (( i=0; i<len; i=i+12 )); do #calculate the load from the idle and iowait column
+    awk -v iowait="${mpstat_array[(($i+5))]//,/\.}}" -v idle="${mpstat_array[(($i+11))]//,/\.}}" 'BEGIN{print 100.0 - iowait - idle }'
   done
 }
 
